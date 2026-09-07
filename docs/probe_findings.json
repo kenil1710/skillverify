@@ -1,0 +1,343 @@
+{
+  "address": "0x0aA1ad56D45aBa97a862Ea816832967a9b674AE2",
+  "network": "studionet",
+  "at": "2026-09-07T11:30:37.712Z",
+  "findings": {
+    "egress": {
+      "agreed": true,
+      "undetermined": false,
+      "status": "ACCEPTED",
+      "report": {
+        "https://api.github.com/repos/octocat/Spoon-Knife/languages": {
+          "head": "{\"HTML\":355,\"CSS\":256}",
+          "len": 22,
+          "status": 200
+        },
+        "https://api.github.com/repos/torvalds/linux/languages": {
+          "head": "{\"C\":1451702328,\"Assembly\":9614300,\"Rust\":6578960,\"Shell\":6300980,\"Python\":4732907,\"Makefile\":3001451,\"Perl\":1143900,\"C++\":187776,\"SmPL\":172635,\"Yacc\":127693,\"Roff\":103378,\"Awk\":80108,\"Lex\":68792,\"Jinja\":31884,\"UnrealScript\":16071,\"Gherkin\"",
+          "len": 363,
+          "status": 200
+        },
+        "https://api.github.com/users/this-user-does-not-exist-skillverify-xyz/repos?per_page=5": {
+          "head": "{\"message\":\"Not Found\",\"documentation_url\":\"https://docs.github.com/rest/repos/repos#list-repositories-for-a-user\",\"status\":\"404\"}",
+          "len": 130,
+          "status": 404
+        },
+        "https://api.github.com/users/torvalds/repos?per_page=100&sort=updated": {
+          "head": "[{\"id\":2325298,\"node_id\":\"MDEwOlJlcG9zaXRvcnkyMzI1Mjk4\",\"name\":\"linux\",\"full_name\":\"torvalds/linux\",\"private\":false,\"owner\":{\"login\":\"torvalds\",\"id\":1024025,\"node_id\":\"MDQ6VXNlcjEwMjQwMjU=\",\"avatar_url\":\"https://avatars.githubusercontent.co",
+          "len": 62334,
+          "status": 200
+        },
+        "https://api.github.com/users/torvalds/repos?per_page=5&sort=updated": {
+          "head": "[{\"id\":2325298,\"node_id\":\"MDEwOlJlcG9zaXRvcnkyMzI1Mjk4\",\"name\":\"linux\",\"full_name\":\"torvalds/linux\",\"private\":false,\"owner\":{\"login\":\"torvalds\",\"id\":1024025,\"node_id\":\"MDQ6VXNlcjEwMjQwMjU=\",\"avatar_url\":\"https://avatars.githubusercontent.co",
+          "len": 26055,
+          "status": 200
+        }
+      }
+    },
+    "shape:repos": {
+      "agreed": true,
+      "undetermined": false,
+      "status": "ACCEPTED",
+      "report": {
+        "len": 26055,
+        "status": 200,
+        "top": {
+          "_first": {
+            "allow_forking": "bool=True",
+            "archive_url": "str=https://api.github.com/repos/torvalds/linux/{archive_format}{/ref}",
+            "archived": "bool=False",
+            "assignees_url": "str=https://api.github.com/repos/torvalds/linux/assignees{/user}",
+            "blobs_url": "str=https://api.github.com/repos/torvalds/linux/git/blobs{/sha}",
+            "branches_url": "str=https://api.github.com/repos/torvalds/linux/branches{/branch}",
+            "clone_url": "str=https://github.com/torvalds/linux.git",
+            "collaborators_url": "str=https://api.github.com/repos/torvalds/linux/collaborators{/collaborator}",
+            "comments_url": "str=https://api.github.com/repos/torvalds/linux/comments{/number}",
+            "commits_url": "str=https://api.github.com/repos/torvalds/linux/commits{/sha}",
+            "compare_url": "str=https://api.github.com/repos/torvalds/linux/compare/{base}...{head}",
+            "contents_url": "str=https://api.github.com/repos/torvalds/linux/contents/{+path}",
+            "contributors_url": "str=https://api.github.com/repos/torvalds/linux/contributors",
+            "created_at": "str=2011-09-04T22:48:12Z",
+            "default_branch": "str=master",
+            "deployments_url": "str=https://api.github.com/repos/torvalds/linux/deployments",
+            "description": "str=Linux kernel source tree",
+            "disabled": "bool=False",
+            "downloads_url": "str=https://api.github.com/repos/torvalds/linux/downloads",
+            "events_url": "str=https://api.github.com/repos/torvalds/linux/events",
+            "fork": "bool=False",
+            "forks": "int=64358",
+            "forks_count": "int=64358",
+            "forks_url": "str=https://api.github.com/repos/torvalds/linux/forks",
+            "full_name": "str=torvalds/linux",
+            "git_commits_url": "str=https://api.github.com/repos/torvalds/linux/git/commits{/sha}",
+            "git_refs_url": "str=https://api.github.com/repos/torvalds/linux/git/refs{/sha}",
+            "git_tags_url": "str=https://api.github.com/repos/torvalds/linux/git/tags{/sha}",
+            "git_url": "str=git://github.com/torvalds/linux.git",
+            "has_discussions": "bool=False",
+            "has_downloads": "bool=False",
+            "has_issues": "bool=False",
+            "has_pages": "bool=False",
+            "has_projects": "bool=True",
+            "has_pull_requests": "bool=False",
+            "has_wiki": "bool=False",
+            "homepage": "str=",
+            "hooks_url": "str=https://api.github.com/repos/torvalds/linux/hooks",
+            "html_url": "str=https://github.com/torvalds/linux",
+            "id": "int=2325298"
+          },
+          "_list_len": 5
+        }
+      }
+    },
+    "shape:languages": {
+      "agreed": true,
+      "undetermined": false,
+      "status": "ACCEPTED",
+      "report": {
+        "len": 363,
+        "status": 200,
+        "top": {
+          "Assembly": "int=9614300",
+          "Awk": "int=80108",
+          "C": "int=1451702328",
+          "C++": "int=187776",
+          "CSS": "int=1491",
+          "Clojure": "int=2727",
+          "Gherkin": "int=10891",
+          "Jinja": "int=31884",
+          "Lex": "int=68792",
+          "Linker Script": "int=10017",
+          "M4": "int=3329",
+          "MATLAB": "int=2482",
+          "Makefile": "int=3001451",
+          "Perl": "int=1143900",
+          "Python": "int=4732907",
+          "RPC": "int=4632",
+          "Roff": "int=103378",
+          "Rust": "int=6578960",
+          "SWIG": "int=6319",
+          "Shell": "int=6300980",
+          "SmPL": "int=172635",
+          "UnrealScript": "int=16071",
+          "XS": "int=1239",
+          "Yacc": "int=127693",
+          "sed": "int=2543"
+        }
+      }
+    },
+    "repos:torvalds": {
+      "agreed": true,
+      "undetermined": false,
+      "status": "ACCEPTED",
+      "report": {
+        "count": 12,
+        "forks": 3,
+        "len": 62334,
+        "null_lang": 0,
+        "repos": [
+          {
+            "fork": false,
+            "lang": "C",
+            "name": "linux",
+            "owner": "torvalds",
+            "size": 6360386
+          },
+          {
+            "fork": false,
+            "lang": "C",
+            "name": "GuitarPedal",
+            "owner": "torvalds",
+            "size": 16331
+          },
+          {
+            "fork": false,
+            "lang": "C",
+            "name": "HunspellColorize",
+            "owner": "torvalds",
+            "size": 15
+          },
+          {
+            "fork": false,
+            "lang": "C",
+            "name": "AudioNoise",
+            "owner": "torvalds",
+            "size": 1428
+          },
+          {
+            "fork": false,
+            "lang": "C",
+            "name": "ScrollWheel",
+            "owner": "torvalds",
+            "size": 15
+          },
+          {
+            "fork": true,
+            "lang": "C",
+            "name": "libgit2",
+            "owner": "torvalds",
+            "size": 62768
+          },
+          {
+            "fork": true,
+            "lang": "C",
+            "name": "libdc-for-dirk",
+            "owner": "torvalds",
+            "size": 3743
+          },
+          {
+            "fork": true,
+            "lang": "C++",
+            "name": "subsurface-for-dirk",
+            "owner": "torvalds",
+            "size": 155337
+          },
+          {
+            "fork": false,
+            "lang": "OpenSCAD",
+            "name": "1590A",
+            "owner": "torvalds",
+            "size": 10882
+          },
+          {
+            "fork": false,
+            "lang": "C",
+            "name": "pesconvert",
+            "owner": "torvalds",
+            "size": 17
+          },
+          {
+            "fork": false,
+            "lang": "C",
+            "name": "test-tlb",
+            "owner": "torvalds",
+            "size": 19
+          },
+          {
+            "fork": false,
+            "lang": "C",
+            "name": "uemacs",
+            "owner": "torvalds",
+            "size": 758
+          }
+        ],
+        "status": 200
+      }
+    },
+    "drift:repos": {
+      "agreed": true,
+      "undetermined": false,
+      "status": "ACCEPTED",
+      "report": {
+        "agreed_exactly": true,
+        "leader": {
+          "body": "[{\"id\":2325298,\"node_id\":\"MDEwOlJlcG9zaXRvcnkyMzI1Mjk4\",\"name\":\"linux\",\"full_name\":\"torvalds/linux\",\"private\":false,\"owner\":{\"login\":\"torvalds\",\"id\":1024025,\"node_id\":\"MDQ6VXNlcjEwMjQwMjU=\",\"avatar_url\":\"https://avatars.githubusercontent.com/u/1024025?v=4\",\"gravatar_id\":\"\",\"url\":\"https://api.github.com/users/torvalds\",\"html_url\":\"https://github.com/torvalds\",\"followers_url\":\"https://api.github.com/users/torvalds/followers\",\"following_url\":\"https://api.github.com/users/torvalds/following{/other_user}\",\"gists_url\":\"https://api.github.com/users/torvalds/gists{/gist_id}\",\"starred_url\":\"https://api.github.com/users/torvalds/starred{/owner}{/repo}\",\"subscriptions_url\":\"https://api.github.com/users/torvalds/subscriptions\",\"organizations_url\":\"https://api.github.com/users/torvalds/orgs\",\"repos_url\":\"https://api.github.com/users/torvalds/repos\",\"events_url\":\"https://api.github.com/users/torvalds/events{/privacy}\",\"received_events_url\":\"https://api.github.com/users/torvalds/received_events\",\"type\":\"User\",\"user_view_type\":\"public\",\"site_admin\":false},\"html_url\":\"https://github.com/torvalds/linux\",\"description\":\"Linux kernel source tree\",\"fork\":false,\"url\":\"https://api.github.com/repos/torvalds/linux\",\"forks_url\":\"https://api.github.com/repos/torvalds/linux/forks\",\"keys_url\":\"https://api.github.com/repos/torvalds/linux/keys{/key_id}\",\"collaborators_url\":\"https://api.github.com/repos/torvalds/linux/collaborators{/collaborator}\",\"teams_url\":\"https://api.github.com/repos/torvalds/linux/teams\",\"hooks_url\":\"https://api.github.com/repos/torvalds/linux/hooks\",\"issue_events_url\":\"https://api.github.com/repos/torvalds/linux/issues/events{/number}\",\"events_url\":\"https://api.github.com/repos/torvalds/linux/events\",\"assignees_url\":\"https://api.github.com/repos/torvalds/linux/assignees{/user}\",\"branches_url\":\"https://api.github.com/repos/torvalds/linux/branches{/branch}\",\"tags_url\":\"https://api.github.com/repos/torvalds/linux/tags\",\"blobs_url\":\"https://api.github.com/repos/torvalds/linux/git/blobs{/sha}\",\"git_tags_url\":\"https://api.github.com/repos/torvalds/linux/git/tags{/sha}\",\"git_refs_url\":\"https://api.github.com/repos/torvalds/linux/git/refs{/sha}\",\"trees_url\":\"https://api.github.com/repos/torvalds/linux/git/trees{/sha}\",\"statuses_url\":\"https://api.github.com/repos/torvalds/linux/statuses/{sha}\",\"languages_url\":\"https://api.github.com/repos/torvalds/linux/languages\",\"stargazers_url\":\"https://api.github.com/repos/torvalds/linux/stargazers\",\"contributors_url\":\"https://api.github.com/repos/torvalds/linux/contributors\",\"subscribers_url\":\"https://api.github.com/repos/torvalds/linux/subscribers\",\"subscription_url\":\"https://api.github.com/repos/torvalds/linux/subscription\",\"commits_url\":\"https://api.github.com/repos/torvalds/linux/commits{/sha}\",\"git_commits_url\":\"https://api.github.com/repos/torvalds/linux/git/commits{/sha}\",\"comments_url\":\"https://api.github.com/repos/torvalds/linux/comments{/number}\",\"issue_comment_url\":\"https://api.github.com/repos/torvalds/linux/issues/comments{/number}\",\"contents_url\":\"https://api.github.com/repos/torvalds/linux/contents/{+path}\",\"compare_url\":\"https://api.github.com/repos/torvalds/linux/compare/{base}...{head}\",\"merges_url\":\"https://api.github.com/repos/torvalds/linux/merges\",\"archive_url\":\"https://api.github.com/repos/torvalds/linux/{archive_format}{/ref}\",\"downloads_url\":\"https://api.github.com/repos/torvalds/linux/downloads\",\"issues_url\":\"https://api.github.com/repos/torvalds/linux/issues{/number}\",\"pulls_url\":\"https://api.github.com/repos/torvalds/linux/pulls{/number}\",\"milestones_url\":\"https://api.github.com/repos/torvalds/linux/milestones{/number}\",\"notifications_url\":\"https://api.github.com/repos/torvalds/linux/notifications{?since,all,participating}\",\"labels_url\":\"https://api.github.com/repos/torvalds/linux/labels{/name}\",\"releases_url\":\"https://api.github.com/repos/torvalds/linux/releases{/id}\",\"deployments_url\":\"https://api.github.com/repos/torvalds/linux/deployments\",\"created_at\":\"2011-09-04T22:48:12Z\"",
+          "len": 26055,
+          "status": 200
+        }
+      }
+    },
+    "drift:languages": {
+      "agreed": true,
+      "undetermined": false,
+      "status": "ACCEPTED",
+      "report": {
+        "agreed_exactly": true,
+        "leader": {
+          "body": "{\"C\":1451702328,\"Assembly\":9614300,\"Rust\":6578960,\"Shell\":6300980,\"Python\":4732907,\"Makefile\":3001451,\"Perl\":1143900,\"C++\":187776,\"SmPL\":172635,\"Yacc\":127693,\"Roff\":103378,\"Awk\":80108,\"Lex\":68792,\"Jinja\":31884,\"UnrealScript\":16071,\"Gherkin\":10891,\"Linker Script\":10017,\"SWIG\":6319,\"RPC\":4632,\"M4\":3329,\"Clojure\":2727,\"sed\":2543,\"MATLAB\":2482,\"CSS\":1491,\"XS\":1239}",
+          "len": 363,
+          "status": 200
+        }
+      }
+    },
+    "level:torvalds/C": {
+      "agreed": true,
+      "undetermined": false,
+      "status": "ACCEPTED",
+      "report": {
+        "level_agreed": true,
+        "skill": "C",
+        "user": "torvalds",
+        "leader": {
+          "calls": 11,
+          "errors": 0,
+          "level": "EXPERT",
+          "ok": true,
+          "repo_count": 9,
+          "scanned": 10,
+          "top": [
+            {
+              "bytes": 1451702328,
+              "repo": "linux"
+            },
+            {
+              "bytes": 7731824,
+              "repo": "libgit2"
+            },
+            {
+              "bytes": 1374766,
+              "repo": "libdc-for-dirk"
+            }
+          ],
+          "total_bytes": 1462580135
+        }
+      }
+    },
+    "level:gvanrossum/Python": {
+      "agreed": true,
+      "undetermined": false,
+      "status": "ACCEPTED",
+      "report": {
+        "level_agreed": true,
+        "skill": "Python",
+        "user": "gvanrossum",
+        "leader": {
+          "calls": 1,
+          "level": "ERROR",
+          "ok": false,
+          "status": 403
+        }
+      }
+    },
+    "level:kenil1710/JavaScript": {
+      "agreed": true,
+      "undetermined": false,
+      "status": "ACCEPTED",
+      "report": {
+        "level_agreed": true,
+        "skill": "JavaScript",
+        "user": "kenil1710",
+        "leader": {
+          "calls": 1,
+          "level": "ERROR",
+          "ok": false,
+          "status": 403
+        }
+      }
+    },
+    "level_strict:torvalds/C": {
+      "agreed": true,
+      "undetermined": false,
+      "status": "ACCEPTED",
+      "report": {
+        "strict_agreed": true,
+        "leader": {
+          "level": "ERROR",
+          "ok": false,
+          "repo_count": 0,
+          "total_bytes": 0
+        }
+      }
+    },
+    "budget:torvalds x25": {
+      "agreed": true,
+      "undetermined": false,
+      "status": "ACCEPTED",
+      "report": {
+        "first_bad": -1,
+        "list_status": 403,
+        "n": 0,
+        "seq": []
+      }
+    }
+  }
+}

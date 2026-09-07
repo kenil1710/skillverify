@@ -1,0 +1,17 @@
+{
+  "name": "cropshield-test",
+  "private": true,
+  "type": "module",
+  "description": "Integration harness for CropShield on Studionet and Bradbury.",
+  "scripts": {
+    "logic": "python3 test_logic.py",
+    "accounts": "node accounts.mjs",
+    "deploy": "node deploy.mjs",
+    "e2e": "node e2e.mjs"
+  },
+  "dependencies": {
+    "genlayer-js": "^1.1.8",
+    "playwright": "^1.63.0",
+    "viem": "^2.56.3"
+  }
+}

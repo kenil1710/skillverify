@@ -1,0 +1,434 @@
+{
+ "captured": "2026-09-07",
+ "note": "verbatim GitHub search responses; items trimmed to the fields the contract reads",
+ "fixtures": {
+  "torvalds_C": {
+   "url": "https://api.github.com/search/repositories?per_page=100&sort=updated&q=user:torvalds%20language:%22C%22",
+   "status": 200,
+   "body": {
+    "total_count": 8,
+    "incomplete_results": false,
+    "items": [
+     {
+      "name": "linux",
+      "language": "C",
+      "size": 6360386,
+      "fork": false,
+      "full_name": "torvalds/linux"
+     },
+     {
+      "name": "GuitarPedal",
+      "language": "C",
+      "size": 16331,
+      "fork": false,
+      "full_name": "torvalds/GuitarPedal"
+     },
+     {
+      "name": "uemacs",
+      "language": "C",
+      "size": 758,
+      "fork": false,
+      "full_name": "torvalds/uemacs"
+     },
+     {
+      "name": "ScrollWheel",
+      "language": "C",
+      "size": 15,
+      "fork": false,
+      "full_name": "torvalds/ScrollWheel"
+     },
+     {
+      "name": "AudioNoise",
+      "language": "C",
+      "size": 1428,
+      "fork": false,
+      "full_name": "torvalds/AudioNoise"
+     },
+     {
+      "name": "HunspellColorize",
+      "language": "C",
+      "size": 15,
+      "fork": false,
+      "full_name": "torvalds/HunspellColorize"
+     },
+     {
+      "name": "test-tlb",
+      "language": "C",
+      "size": 19,
+      "fork": false,
+      "full_name": "torvalds/test-tlb"
+     },
+     {
+      "name": "pesconvert",
+      "language": "C",
+      "size": 17,
+      "fork": false,
+      "full_name": "torvalds/pesconvert"
+     }
+    ]
+   }
+  },
+  "gvanrossum_Python": {
+   "url": "https://api.github.com/search/repositories?per_page=100&sort=updated&q=user:gvanrossum%20language:%22Python%22",
+   "status": 200,
+   "body": {
+    "total_count": 8,
+    "incomplete_results": false,
+    "items": [
+     {
+      "name": "c-parser",
+      "language": "Python",
+      "size": 23,
+      "fork": false,
+      "full_name": "gvanrossum/c-parser"
+     },
+     {
+      "name": "old-demos",
+      "language": "Python",
+      "size": 181,
+      "fork": false,
+      "full_name": "gvanrossum/old-demos"
+     },
+     {
+      "name": "patma",
+      "language": "Python",
+      "size": 178,
+      "fork": false,
+      "full_name": "gvanrossum/patma"
+     },
+     {
+      "name": "pythonlabs-com-azure",
+      "language": "Python",
+      "size": 20,
+      "fork": false,
+      "full_name": "gvanrossum/pythonlabs-com-azure"
+     },
+     {
+      "name": "guidos_time_machine",
+      "language": "Python",
+      "size": 0,
+      "fork": false,
+      "full_name": "gvanrossum/guidos_time_machine"
+     },
+     {
+      "name": "pep550",
+      "language": "Python",
+      "size": 22,
+      "fork": false,
+      "full_name": "gvanrossum/pep550"
+     },
+     {
+      "name": "mypy-dummy",
+      "language": "Python",
+      "size": 3,
+      "fork": false,
+      "full_name": "gvanrossum/mypy-dummy"
+     },
+     {
+      "name": "ballot-box",
+      "language": "Python",
+      "size": 168,
+      "fork": false,
+      "full_name": "gvanrossum/ballot-box"
+     }
+    ]
+   }
+  },
+  "kenil1710_JS": {
+   "url": "https://api.github.com/search/repositories?per_page=100&sort=updated&q=user:kenil1710%20language:%22JavaScript%22",
+   "status": 200,
+   "body": {
+    "total_count": 5,
+    "incomplete_results": false,
+    "items": [
+     {
+      "name": "cronpay",
+      "language": "JavaScript",
+      "size": 11593,
+      "fork": false,
+      "full_name": "kenil1710/cronpay"
+     },
+     {
+      "name": "gm-striker",
+      "language": "JavaScript",
+      "size": 459,
+      "fork": false,
+      "full_name": "kenil1710/gm-striker"
+     },
+     {
+      "name": "ritualfrontend",
+      "language": "JavaScript",
+      "size": 88,
+      "fork": false,
+      "full_name": "kenil1710/ritualfrontend"
+     },
+     {
+      "name": "leoartnft",
+      "language": "JavaScript",
+      "size": 1031,
+      "fork": false,
+      "full_name": "kenil1710/leoartnft"
+     },
+     {
+      "name": "RESTful-API-Node",
+      "language": "JavaScript",
+      "size": 258,
+      "fork": false,
+      "full_name": "kenil1710/RESTful-API-Node"
+     }
+    ]
+   }
+  },
+  "kenil1710_TS": {
+   "url": "https://api.github.com/search/repositories?per_page=100&sort=updated&q=user:kenil1710%20language:%22TypeScript%22",
+   "status": 200,
+   "body": {
+    "total_count": 6,
+    "incomplete_results": false,
+    "items": [
+     {
+      "name": "claimstake",
+      "language": "TypeScript",
+      "size": 247,
+      "fork": false,
+      "full_name": "kenil1710/claimstake"
+     },
+     {
+      "name": "trustguard",
+      "language": "TypeScript",
+      "size": 933,
+      "fork": false,
+      "full_name": "kenil1710/trustguard"
+     },
+     {
+      "name": "auditcourt",
+      "language": "TypeScript",
+      "size": 317,
+      "fork": false,
+      "full_name": "kenil1710/auditcourt"
+     },
+     {
+      "name": "proofwork",
+      "language": "TypeScript",
+      "size": 548,
+      "fork": false,
+      "full_name": "kenil1710/proofwork"
+     },
+     {
+      "name": "ritual-ai-bounty-judge",
+      "language": "TypeScript",
+      "size": 121,
+      "fork": false,
+      "full_name": "kenil1710/ritual-ai-bounty-judge"
+     },
+     {
+      "name": "ritual-calendar",
+      "language": "TypeScript",
+      "size": 93,
+      "fork": false,
+      "full_name": "kenil1710/ritual-calendar"
+     }
+    ]
+   }
+  },
+  "torvalds_Haskell": {
+   "url": "https://api.github.com/search/repositories?per_page=100&sort=updated&q=user:torvalds%20language:%22Haskell%22",
+   "status": 200,
+   "body": {
+    "total_count": 0,
+    "incomplete_results": false,
+    "items": []
+   }
+  },
+  "torvalds_bogus": {
+   "url": "https://api.github.com/search/repositories?per_page=100&sort=updated&q=user:torvalds%20language:%22Notalanguage%22",
+   "status": 200,
+   "body": {
+    "total_count": 9,
+    "incomplete_results": false,
+    "items": [
+     {
+      "name": "linux",
+      "language": "C",
+      "size": 6360386,
+      "fork": false,
+      "full_name": "torvalds/linux"
+     },
+     {
+      "name": "GuitarPedal",
+      "language": "C",
+      "size": 16331,
+      "fork": false,
+      "full_name": "torvalds/GuitarPedal"
+     },
+     {
+      "name": "uemacs",
+      "language": "C",
+      "size": 758,
+      "fork": false,
+      "full_name": "torvalds/uemacs"
+     },
+     {
+      "name": "ScrollWheel",
+      "language": "C",
+      "size": 15,
+      "fork": false,
+      "full_name": "torvalds/ScrollWheel"
+     },
+     {
+      "name": "AudioNoise",
+      "language": "C",
+      "size": 1428,
+      "fork": false,
+      "full_name": "torvalds/AudioNoise"
+     },
+     {
+      "name": "HunspellColorize",
+      "language": "C",
+      "size": 15,
+      "fork": false,
+      "full_name": "torvalds/HunspellColorize"
+     },
+     {
+      "name": "1590A",
+      "language": "OpenSCAD",
+      "size": 10882,
+      "fork": false,
+      "full_name": "torvalds/1590A"
+     },
+     {
+      "name": "test-tlb",
+      "language": "C",
+      "size": 19,
+      "fork": false,
+      "full_name": "torvalds/test-tlb"
+     },
+     {
+      "name": "pesconvert",
+      "language": "C",
+      "size": 17,
+      "fork": false,
+      "full_name": "torvalds/pesconvert"
+     }
+    ]
+   }
+  },
+  "nlohmann_Cpp": {
+   "url": "https://api.github.com/search/repositories?per_page=100&sort=updated&q=user:nlohmann%20language:%22C%2B%2B%22",
+   "status": 200,
+   "body": {
+    "total_count": 8,
+    "incomplete_results": false,
+    "items": [
+     {
+      "name": "json",
+      "language": "C++",
+      "size": 284338,
+      "fork": false,
+      "full_name": "nlohmann/json"
+     },
+     {
+      "name": "fifo_map",
+      "language": "C++",
+      "size": 231,
+      "fork": false,
+      "full_name": "nlohmann/fifo_map"
+     },
+     {
+      "name": "fuzzcover",
+      "language": "C++",
+      "size": 3108,
+      "fork": false,
+      "full_name": "nlohmann/fuzzcover"
+     },
+     {
+      "name": "msvc_modules_json",
+      "language": "C++",
+      "size": 166,
+      "fork": false,
+      "full_name": "nlohmann/msvc_modules_json"
+     },
+     {
+      "name": "crow",
+      "language": "C++",
+      "size": 10862,
+      "fork": false,
+      "full_name": "nlohmann/crow"
+     },
+     {
+      "name": "wendy",
+      "language": "C++",
+      "size": 6448,
+      "fork": false,
+      "full_name": "nlohmann/wendy"
+     },
+     {
+      "name": "bpel2owfn",
+      "language": "C++",
+      "size": 13124,
+      "fork": false,
+      "full_name": "nlohmann/bpel2owfn"
+     },
+     {
+      "name": "service-technology.org",
+      "language": "C++",
+      "size": 159328,
+      "fork": false,
+      "full_name": "nlohmann/service-technology.org"
+     }
+    ]
+   }
+  },
+  "nlohmann_Cpp_trap": {
+   "url": "https://api.github.com/search/repositories?per_page=100&sort=updated&q=user:nlohmann+language:C++",
+   "status": 200,
+   "body": {
+    "total_count": 1,
+    "incomplete_results": false,
+    "items": [
+     {
+      "name": "blog",
+      "language": "C",
+      "size": 320058,
+      "fork": false,
+      "full_name": "nlohmann/blog"
+     }
+    ]
+   }
+  },
+  "missing_user": {
+   "url": "https://api.github.com/search/repositories?per_page=100&sort=updated&q=user:this-user-does-not-exist-skillverify-xyz%20language:%22Python%22",
+   "status": 422,
+   "body": {
+    "message": "Validation Failed",
+    "errors": [
+     {
+      "message": "The listed users and repositories cannot be searched either because the resources do not exist or you do not have permission to view them.",
+      "resource": "Search",
+      "field": "q",
+      "code": "invalid"
+     }
+    ],
+    "documentation_url": "https://docs.github.com/v3/search/",
+    "status": "422"
+   }
+  },
+  "octocat_HTML": {
+   "url": "https://api.github.com/search/repositories?per_page=100&sort=updated&q=user:octocat%20language:%22HTML%22",
+   "status": 200,
+   "body": {
+    "total_count": 1,
+    "incomplete_results": false,
+    "items": [
+     {
+      "name": "Spoon-Knife",
+      "language": "HTML",
+      "size": 2,
+      "fork": false,
+      "full_name": "octocat/Spoon-Knife"
+     }
+    ]
+   }
+  }
+ }
+}

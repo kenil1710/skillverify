@@ -1,0 +1,39 @@
+{
+  "project": "SkillVerify",
+  "description": "A developer skill verification oracle. Validators independently query GitHub's search index and agree on one level: EXPERT, PROFICIENT, BEGINNER or NONE.",
+  "category": "Intelligent Contracts",
+  "runner": "py-genlayer:1jb45aa8ynh2a9c9xn3b7qqh8sm5q93hwfp7jqmwsfhh8jpz09h6",
+  "artifacts": {
+    "build/SkillVerify.min.py": {
+      "source": "contracts/SkillVerify.py",
+      "bytes": 21741,
+      "sha256": "17b1e838194ceb16e8fd2a37651847b32e5647ded39e062a4a203d42dd05829f",
+      "source_sha256": "9056801ff819244bf4664afc8de308a22ee57f8904410d121aeeca540a4f7fb7"
+    },
+    "build/SkillConsumer.min.py": {
+      "source": "contracts/SkillConsumer.py",
+      "bytes": 11069,
+      "sha256": "9bbcbd0b4307ab9d63322c9e19e87b5579046108fc5829c08aa086659cc0d3ee",
+      "source_sha256": "3e4a31088c5f176629a6b35297238b5a71d671163176817f07741c930858fdd9"
+    }
+  },
+  "deployments": {
+    "studionet": {
+      "SkillVerify": "0x502852778bfAB94E48918E7A14D28b126D58cc41",
+      "SkillConsumer": "0x08CedAECe6BbB6accE3Ed5B6A0708765a2627B77",
+      "owner": "0x05b6EF29873BE3e7bf600C73298cC9EC9DDe6815",
+      "deployedAt": "2026-09-07",
+      "e2e": "111 passed, 0 failed, 0 notes"
+    },
+    "bradbury": {
+      "SkillVerify": null,
+      "SkillConsumer": null
+    }
+  },
+  "probes": {
+    "round1_egress_and_repo_walk": "0x0aA1ad56D45aBa97a862Ea816832967a9b674AE2",
+    "round2_rate_limit": "0xEc7482C58205bd59754258eddC840cE758585992",
+    "round3_search_index": "0x9E9bf1e5fb00344588078895Db5e753AAB9b2F6A",
+    "round4_5_url_encoding": "0xBA33fda8F9C5C9d95A95DEEC187b4DEa1F538f72"
+  }
+}

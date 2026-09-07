@@ -1,0 +1,140 @@
+{
+  "address": "0xEc7482C58205bd59754258eddC840cE758585992",
+  "network": "studionet",
+  "at": "2026-09-07T11:34:41.692Z",
+  "findings": {
+    "rate_limit (remaining on the axis)": {
+      "agreed": true,
+      "undetermined": false,
+      "status": "ACCEPTED",
+      "report": {
+        "remaining_agreed": true,
+        "leader": {
+          "limit": 60,
+          "remaining": -1,
+          "reset": 1788784068,
+          "status": 200,
+          "used": 60
+        }
+      }
+    },
+    "is the bucket still empty": {
+      "agreed": true,
+      "undetermined": false,
+      "status": "ACCEPTED",
+      "report": {
+        "https://api.github.com/repos/torvalds/linux/languages": {
+          "head": "{\"message\":\"API rate limit exceeded for 44.198.152.104. (But here's the good news: Authenticated requests get a higher rate limit. Check out the documentation for more details.)\",\"documentation_url\":\"https://docs.github.com/rest/overview/re",
+          "len": 280,
+          "status": 403
+        },
+        "https://api.github.com/users/torvalds/repos?per_page=5&sort=updated": {
+          "head": "{\"message\":\"API rate limit exceeded for 44.198.152.104. (But here's the good news: Authenticated requests get a higher rate limit. Check out the documentation for more details.)\",\"documentation_url\":\"https://docs.github.com/rest/overview/re",
+          "len": 280,
+          "status": 403
+        }
+      }
+    },
+    "keyless mirrors": {
+      "agreed": true,
+      "undetermined": false,
+      "status": "ACCEPTED",
+      "report": {
+        "https://api.codetabs.com/v1/proxy?quest=https://api.github.com/users/torvalds/repos": {
+          "head": "<!DOCTYPE html>\n<!--[if lt IE 7]> <html class=\"no-js ie6 oldie\" lang=\"en-US\"> <![endif]-->\n<!--[if IE 7]>    <html class=\"no-js ie7 oldie\" lang=\"en-US\"> <![endif]-->\n<!--[if IE 8]>    <html class=\"no-js ie8 oldie\" lang=\"en-US\"> <![endif]-->",
+          "len": 7246,
+          "status": 522
+        },
+        "https://ungh.cc/repos/torvalds/linux": {
+          "head": "{\"repo\":{\"id\":2325298,\"name\":\"linux\",\"repo\":\"torvalds/linux\",\"description\":\"Linux kernel source tree\",\"createdAt\":\"2011-09-04T22:48:12Z\",\"updatedAt\":\"2026-09-07T11:30:06Z\",\"pushedAt\":\"2026-09-06T22:09:35Z\",\"stars\":247328,\"watchers\":8408,\"fo",
+          "len": 277,
+          "status": 200
+        },
+        "https://ungh.cc/users/torvalds/repos": {
+          "head": "{\"repos\":[{\"id\":940929652,\"name\":\"1590A\",\"repo\":\"torvalds/1590A\",\"description\":\"Random odd guitar pedal design in kicad\",\"createdAt\":\"2025-03-01T04:36:29Z\",\"updatedAt\":\"2026-09-05T09:48:18Z\",\"pushedAt\":\"2025-09-19T02:54:14Z\",\"stars\":569,\"wa",
+          "len": 3613,
+          "status": 200
+        }
+      }
+    },
+    "onecall:torvalds/C": {
+      "agreed": true,
+      "undetermined": false,
+      "status": "ACCEPTED",
+      "report": {
+        "level_agreed": true,
+        "leader": {
+          "level": "ERROR",
+          "ok": false,
+          "status": 403
+        }
+      }
+    },
+    "onecall:gvanrossum/Python": {
+      "agreed": true,
+      "undetermined": false,
+      "status": "ACCEPTED",
+      "report": {
+        "level_agreed": true,
+        "leader": {
+          "level": "ERROR",
+          "ok": false,
+          "status": 403
+        }
+      }
+    },
+    "onecall:kenil1710/JavaScript": {
+      "agreed": true,
+      "undetermined": false,
+      "status": "ACCEPTED",
+      "report": {
+        "level_agreed": true,
+        "leader": {
+          "level": "ERROR",
+          "ok": false,
+          "status": 403
+        }
+      }
+    },
+    "onecall_strict:torvalds/C": {
+      "agreed": true,
+      "undetermined": false,
+      "status": "ACCEPTED",
+      "report": {
+        "strict_agreed": true,
+        "leader": {
+          "level": "ERROR",
+          "ok": false,
+          "repo_count": 0,
+          "total_bytes": 0
+        }
+      }
+    },
+    "onecall:torvalds/Haskell (expect NONE)": {
+      "agreed": true,
+      "undetermined": false,
+      "status": "ACCEPTED",
+      "report": {
+        "level_agreed": true,
+        "leader": {
+          "level": "ERROR",
+          "ok": false,
+          "status": 403
+        }
+      }
+    },
+    "onecall:nonexistent user": {
+      "agreed": true,
+      "undetermined": false,
+      "status": "ACCEPTED",
+      "report": {
+        "level_agreed": true,
+        "leader": {
+          "level": "ERROR",
+          "ok": false,
+          "status": 403
+        }
+      }
+    }
+  }
+}

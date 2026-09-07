@@ -1,0 +1,72 @@
+{
+  "address": "0xBA33fda8F9C5C9d95A95DEEC187b4DEa1F538f72",
+  "at": "2026-09-07T11:53:25.662Z",
+  "findings": {
+    "quoted single word": {
+      "q": "user:torvalds%20language:%22C%22",
+      "why": "must match the 8 that bare language:C gave",
+      "report": {
+        "languages": {
+          "C": 8
+        },
+        "returned": 8,
+        "status": 200,
+        "total_count": 8
+      },
+      "status": "ACCEPTED"
+    },
+    "quoted C++, real owner": {
+      "q": "user:nlohmann%20language:%22C%2B%2B%22",
+      "why": "a user who genuinely owns C++ repos, not forks",
+      "report": {
+        "languages": {
+          "C++": 8
+        },
+        "returned": 8,
+        "status": 200,
+        "total_count": 8
+      },
+      "status": "ACCEPTED"
+    },
+    "bare C++, real owner": {
+      "q": "user:nlohmann%20language:C++",
+      "why": "the trap, on a user where the right answer is nonzero",
+      "report": {
+        "languages": {
+          "C": 1
+        },
+        "returned": 1,
+        "status": 200,
+        "total_count": 1
+      },
+      "status": "ACCEPTED"
+    },
+    "quoted nonsense lang": {
+      "q": "user:torvalds%20language:%22Notalanguage%22",
+      "why": "the silent-ignore bug must still be caught by the item filter",
+      "report": {
+        "languages": {
+          "C": 8,
+          "OpenSCAD": 1
+        },
+        "returned": 9,
+        "status": 200,
+        "total_count": 9
+      },
+      "status": "ACCEPTED"
+    },
+    "username with a dash": {
+      "q": "user:kenil1710%20language:%22TypeScript%22",
+      "why": "real account, hyphenless control for the E2E",
+      "report": {
+        "languages": {
+          "TypeScript": 6
+        },
+        "returned": 6,
+        "status": 200,
+        "total_count": 6
+      },
+      "status": "ACCEPTED"
+    }
+  }
+}

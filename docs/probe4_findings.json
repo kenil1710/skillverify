@@ -1,0 +1,119 @@
+{
+  "address": "0x514129DBF0FBd16cabB6e4DbBfa94D556c8e9B03",
+  "at": "2026-09-07T11:47:58.238Z",
+  "findings": {
+    "C++ via literal +": {
+      "q": "user:torvalds+language:C++",
+      "why": "the naive spelling — + is a space",
+      "report": {
+        "languages": {
+          "C": 8
+        },
+        "returned": 8,
+        "status": 200,
+        "total_count": 8
+      },
+      "status": "ACCEPTED"
+    },
+    "C++ via %2B%2B, + sep": {
+      "q": "user:torvalds+language:C%2B%2B",
+      "why": "encoded value, + as separator",
+      "report": {
+        "languages": {},
+        "returned": 0,
+        "status": 200,
+        "total_count": 0
+      },
+      "status": "ACCEPTED"
+    },
+    "C++ via %2B%2B, %20 sep": {
+      "q": "user:torvalds%20language:C%2B%2B",
+      "why": "both encoded — the candidate",
+      "report": {
+        "languages": {},
+        "returned": 0,
+        "status": 200,
+        "total_count": 0
+      },
+      "status": "ACCEPTED"
+    },
+    "C via %20 sep": {
+      "q": "user:torvalds%20language:C",
+      "why": "control: %20 must still work",
+      "report": {
+        "languages": {
+          "C": 8
+        },
+        "returned": 8,
+        "status": 200,
+        "total_count": 8
+      },
+      "status": "ACCEPTED"
+    },
+    "C# on a user who has it": {
+      "q": "user:microsoft%20language:C%23",
+      "why": "# must be %23 or the URL is truncated",
+      "report": {
+        "languages": {
+          "C#": 100
+        },
+        "returned": 100,
+        "status": 200,
+        "total_count": 1087
+      },
+      "status": "ACCEPTED"
+    },
+    "C# via literal #": {
+      "q": "user:microsoft%20language:C#",
+      "why": "the naive spelling — # starts a fragment",
+      "report": {
+        "languages": {
+          "C": 100
+        },
+        "returned": 100,
+        "status": 200,
+        "total_count": 164
+      },
+      "status": "ACCEPTED"
+    },
+    "multi-word, quoted": {
+      "q": "user:jakevdp%20language:%22Jupyter%20Notebook%22",
+      "why": "space inside a value needs quotes",
+      "report": {
+        "languages": {
+          "Jupyter Notebook": 31
+        },
+        "returned": 31,
+        "status": 200,
+        "total_count": 31
+      },
+      "status": "ACCEPTED"
+    },
+    "multi-word, unquoted": {
+      "q": "user:jakevdp%20language:Jupyter%20Notebook",
+      "why": "unquoted — second word becomes a term",
+      "report": {
+        "languages": {
+          "Jupyter Notebook": 7
+        },
+        "returned": 7,
+        "status": 200,
+        "total_count": 7
+      },
+      "status": "ACCEPTED"
+    },
+    "Objective-C hyphen": {
+      "q": "user:AFNetworking%20language:Objective-C",
+      "why": "a hyphen needs no encoding",
+      "report": {
+        "languages": {
+          "Objective-C": 15
+        },
+        "returned": 15,
+        "status": 200,
+        "total_count": 15
+      },
+      "status": "ACCEPTED"
+    }
+  }
+}

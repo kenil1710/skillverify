@@ -1,0 +1,333 @@
+{
+  "address": "0x9E9bf1e5fb00344588078895Db5e753AAB9b2F6A",
+  "network": "studionet",
+  "at": "2026-09-07T11:39:17.540Z",
+  "findings": {
+    "rate_limit: all resources": {
+      "agreed": true,
+      "undetermined": false,
+      "status": "ACCEPTED",
+      "report": {
+        "code_search": "0/60 reset=1788784079",
+        "core": "0/60 reset=1788784079",
+        "graphql": "0/0 reset=1788784576",
+        "integration_manifest": "5000/5000 reset=1788784576",
+        "search": "10/10 reset=1788781036",
+        "status": 200
+      }
+    },
+    "search:torvalds/C": {
+      "agreed": true,
+      "undetermined": false,
+      "status": "ACCEPTED",
+      "report": {
+        "level_agreed": true,
+        "q": "user:torvalds+language:C",
+        "leader": {
+          "forks": 0,
+          "incomplete": false,
+          "level": "EXPERT",
+          "ok": true,
+          "returned": 8,
+          "status": 200,
+          "top": [
+            {
+              "bytes": 6513035264,
+              "fork": false,
+              "lang": "C",
+              "repo": "linux"
+            },
+            {
+              "bytes": 16722944,
+              "fork": false,
+              "lang": "C",
+              "repo": "GuitarPedal"
+            },
+            {
+              "bytes": 1462272,
+              "fork": false,
+              "lang": "C",
+              "repo": "AudioNoise"
+            },
+            {
+              "bytes": 776192,
+              "fork": false,
+              "lang": "C",
+              "repo": "uemacs"
+            }
+          ],
+          "total_bytes": 6532064256,
+          "total_count": 8
+        }
+      }
+    },
+    "search:gvanrossum/Python": {
+      "agreed": true,
+      "undetermined": false,
+      "status": "ACCEPTED",
+      "report": {
+        "level_agreed": true,
+        "q": "user:gvanrossum+language:Python",
+        "leader": {
+          "forks": 0,
+          "incomplete": false,
+          "level": "EXPERT",
+          "ok": true,
+          "returned": 8,
+          "status": 200,
+          "top": [
+            {
+              "bytes": 185344,
+              "fork": false,
+              "lang": "Python",
+              "repo": "old-demos"
+            },
+            {
+              "bytes": 182272,
+              "fork": false,
+              "lang": "Python",
+              "repo": "patma"
+            },
+            {
+              "bytes": 172032,
+              "fork": false,
+              "lang": "Python",
+              "repo": "ballot-box"
+            },
+            {
+              "bytes": 23552,
+              "fork": false,
+              "lang": "Python",
+              "repo": "c-parser"
+            }
+          ],
+          "total_bytes": 609280,
+          "total_count": 8
+        }
+      }
+    },
+    "search:kenil1710/JavaScript": {
+      "agreed": true,
+      "undetermined": false,
+      "status": "ACCEPTED",
+      "report": {
+        "level_agreed": true,
+        "q": "user:kenil1710+language:JavaScript",
+        "leader": {
+          "forks": 0,
+          "incomplete": false,
+          "level": "EXPERT",
+          "ok": true,
+          "returned": 5,
+          "status": 200,
+          "top": [
+            {
+              "bytes": 11871232,
+              "fork": false,
+              "lang": "JavaScript",
+              "repo": "cronpay"
+            },
+            {
+              "bytes": 1055744,
+              "fork": false,
+              "lang": "JavaScript",
+              "repo": "leoartnft"
+            },
+            {
+              "bytes": 470016,
+              "fork": false,
+              "lang": "JavaScript",
+              "repo": "gm-striker"
+            },
+            {
+              "bytes": 264192,
+              "fork": false,
+              "lang": "JavaScript",
+              "repo": "RESTful-API-Node"
+            }
+          ],
+          "total_bytes": 13751296,
+          "total_count": 5
+        }
+      }
+    },
+    "search:torvalds/Haskell": {
+      "agreed": true,
+      "undetermined": false,
+      "status": "ACCEPTED",
+      "report": {
+        "level_agreed": true,
+        "q": "user:torvalds+language:Haskell",
+        "leader": {
+          "forks": 0,
+          "incomplete": false,
+          "level": "NONE",
+          "ok": true,
+          "returned": 0,
+          "status": 200,
+          "top": [],
+          "total_bytes": 0,
+          "total_count": 0
+        }
+      }
+    },
+    "search:torvalds/C +fork:true": {
+      "agreed": true,
+      "undetermined": false,
+      "status": "ACCEPTED",
+      "report": {
+        "level_agreed": true,
+        "q": "user:torvalds+language:C+fork:true",
+        "leader": {
+          "forks": 2,
+          "incomplete": false,
+          "level": "EXPERT",
+          "ok": true,
+          "returned": 10,
+          "status": 200,
+          "top": [
+            {
+              "bytes": 6513035264,
+              "fork": false,
+              "lang": "C",
+              "repo": "linux"
+            },
+            {
+              "bytes": 64274432,
+              "fork": true,
+              "lang": "C",
+              "repo": "libgit2"
+            },
+            {
+              "bytes": 16722944,
+              "fork": false,
+              "lang": "C",
+              "repo": "GuitarPedal"
+            },
+            {
+              "bytes": 3832832,
+              "fork": true,
+              "lang": "C",
+              "repo": "libdc-for-dirk"
+            }
+          ],
+          "total_bytes": 6600171520,
+          "total_count": 10
+        }
+      }
+    },
+    "search_strict:torvalds/C": {
+      "agreed": true,
+      "undetermined": false,
+      "status": "ACCEPTED",
+      "report": {
+        "strict_agreed": true,
+        "leader": {
+          "bytes": 6532064256,
+          "count": 8,
+          "level": "EXPERT",
+          "ok": true
+        }
+      }
+    },
+    "search_strict:kenil1710/JavaScript": {
+      "agreed": true,
+      "undetermined": false,
+      "status": "ACCEPTED",
+      "report": {
+        "strict_agreed": true,
+        "leader": {
+          "bytes": 13751296,
+          "count": 5,
+          "level": "EXPERT",
+          "ok": true
+        }
+      }
+    },
+    "drift:search": {
+      "agreed": true,
+      "undetermined": false,
+      "status": "ACCEPTED",
+      "report": {
+        "agreed_exactly": true,
+        "leader": {
+          "body": "{\"total_count\":8,\"incomplete_results\":false,\"items\":[{\"id\":2325298,\"node_id\":\"MDEwOlJlcG9zaXRvcnkyMzI1Mjk4\",\"name\":\"linux\",\"full_name\":\"torvalds/linux\",\"private\":false,\"owner\":{\"login\":\"torvalds\",\"id\":1024025,\"node_id\":\"MDQ6VXNlcjEwMjQwMjU=\",\"avatar_url\":\"https://avatars.githubusercontent.com/u/1024025?v=4\",\"gravatar_id\":\"\",\"url\":\"https://api.github.com/users/torvalds\",\"html_url\":\"https://github.com/torvalds\",\"followers_url\":\"https://api.github.com/users/torvalds/followers\",\"following_url\":\"https://api.github.com/users/torvalds/following{/other_user}\",\"gists_url\":\"https://api.github.com/users/torvalds/gists{/gist_id}\",\"starred_url\":\"https://api.github.com/users/torvalds/starred{/owner}{/repo}\",\"subscriptions_url\":\"https://api.github.com/users/torvalds/subscriptions\",\"organizations_url\":\"https://api.github.com/users/torvalds/orgs\",\"repos_url\":\"https://api.github.com/users/torvalds/repos\",\"events_url\":\"https://api.github.com/users/torvalds/events{/privacy}\",\"received_events_url\":\"https://api.github.com/users/torvalds/received_events\",\"type\":\"User\",\"user_view_type\":\"public\",\"site_admin\":false},\"html_url\":\"https://github.com/torvalds/linux\",\"description\":\"Linux kernel source tree\",\"fork\":false,\"url\":\"https://api.github.com/repos/torvalds/linux\",\"forks_url\":\"https://api.github.com/repos/torvalds/linux/forks\",\"keys_url\":\"https://api.github.com/repos/torvalds/linux/keys{/key_id}\",\"collaborators_url\":\"https://api.github.com/repos/torvalds/linux/collaborators{/collaborator}\",\"teams_url\":\"https://api.github.com/repos/torvalds/linux/teams\",\"hooks_url\":\"https://api.github.com/repos/torvalds/linux/hooks\",\"issue_events_url\":\"https://api.github.com/repos/torvalds/linux/issues/events{/number}\",\"events_url\":\"https://api.github.com/repos/torvalds/linux/events\",\"assignees_url\":\"https://api.github.com/repos/torvalds/linux/assignees{/user}\",\"branches_url\":\"https://api.github.com/repos/torvalds/linux/branches{/branch}\",\"tags_url\":\"https://api.github.com/repos/torvalds/linux/tags\",\"blobs_url\":\"https://api.github.com/repos/torvalds/linux/git/blobs{/sha}\",\"git_tags_url\":\"https://api.github.com/repos/torvalds/linux/git/tags{/sha}\",\"git_refs_url\":\"https://api.github.com/repos/torvalds/linux/git/refs{/sha}\",\"trees_url\":\"https://api.github.com/repos/torvalds/linux/git/trees{/sha}\",\"statuses_url\":\"https://api.github.com/repos/torvalds/linux/statuses/{sha}\",\"languages_url\":\"https://api.github.com/repos/torvalds/linux/languages\",\"stargazers_url\":\"https://api.github.com/repos/torvalds/linux/stargazers\",\"contributors_url\":\"https://api.github.com/repos/torvalds/linux/contributors\",\"subscribers_url\":\"https://api.github.com/repos/torvalds/linux/subscribers\",\"subscription_url\":\"https://api.github.com/repos/torvalds/linux/subscription\",\"commits_url\":\"https://api.github.com/repos/torvalds/linux/commits{/sha}\",\"git_commits_url\":\"https://api.github.com/repos/torvalds/linux/git/commits{/sha}\",\"comments_url\":\"https://api.github.com/repos/torvalds/linux/comments{/number}\",\"issue_comment_url\":\"https://api.github.com/repos/torvalds/linux/issues/comments{/number}\",\"contents_url\":\"https://api.github.com/repos/torvalds/linux/contents/{+path}\",\"compare_url\":\"https://api.github.com/repos/torvalds/linux/compare/{base}...{head}\",\"merges_url\":\"https://api.github.com/repos/torvalds/linux/merges\",\"archive_url\":\"https://api.github.com/repos/torvalds/linux/{archive_format}{/ref}\",\"downloads_url\":\"https://api.github.com/repos/torvalds/linux/downloads\",\"issues_url\":\"https://api.github.com/repos/torvalds/linux/issues{/number}\",\"pulls_url\":\"https://api.github.com/repos/torvalds/linux/pulls{/number}\",\"milestones_url\":\"https://api.github.com/repos/torvalds/linux/milestones{/number}\",\"notifications_url\":\"https://api.github.com/repos/torvalds/linux/notifications{?since,all,participating}\",\"labels_url\":\"https://api.github.com/repos/torvalds/linux/labels{/name}\",\"releases_url\":\"https://api.github.com/repos/torvalds/linux/releases{/id}\",\"deployments_url\":\"https://api.github.com/repos/torvalds/li",
+          "len": 41360,
+          "status": 200
+        }
+      }
+    },
+    "shape:ungh users/repos": {
+      "agreed": true,
+      "undetermined": false,
+      "status": "ACCEPTED",
+      "report": {
+        "len": 3613,
+        "status": 200,
+        "top": {
+          "repos": "list[12] dict{createdAt,defaultBranch,description,forks,id,name,pushedAt,repo,stars,updatedAt,watchers}"
+        }
+      }
+    },
+    "search: bogus user": {
+      "agreed": true,
+      "undetermined": false,
+      "status": "ACCEPTED",
+      "report": {
+        "level_agreed": true,
+        "q": "user:this-user-does-not-exist-skillverify-xyz+language:Python",
+        "leader": {
+          "head": "{\"message\":\"Validation Failed\",\"errors\":[{\"message\":\"The listed users and repositories cannot be searched either because the resources do not exist or you do not have permission to view them.\",\"resource\":\"Search\",\"field\":\"q\",\"code\":\"invalid",
+          "level": "ERROR",
+          "ok": false,
+          "status": 422
+        }
+      }
+    },
+    "search: bogus language": {
+      "agreed": true,
+      "undetermined": false,
+      "status": "ACCEPTED",
+      "report": {
+        "level_agreed": true,
+        "q": "user:torvalds+language:Nonexistentlang",
+        "leader": {
+          "forks": 0,
+          "incomplete": false,
+          "level": "EXPERT",
+          "ok": true,
+          "returned": 9,
+          "status": 200,
+          "top": [
+            {
+              "bytes": 6513035264,
+              "fork": false,
+              "lang": "C",
+              "repo": "linux"
+            },
+            {
+              "bytes": 16722944,
+              "fork": false,
+              "lang": "C",
+              "repo": "GuitarPedal"
+            },
+            {
+              "bytes": 11143168,
+              "fork": false,
+              "lang": "OpenSCAD",
+              "repo": "1590A"
+            },
+            {
+              "bytes": 1462272,
+              "fork": false,
+              "lang": "C",
+              "repo": "AudioNoise"
+            }
+          ],
+          "total_bytes": 6543207424,
+          "total_count": 9
+        }
+      }
+    }
+  }
+}
