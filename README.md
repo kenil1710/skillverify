@@ -20,10 +20,21 @@ claimed by a developer the oracle has verified.
 
 ## Live
 
-| | Studionet |
-|---|---|
-| **SkillVerify** | [`0x502852778bfAB94E48918E7A14D28b126D58cc41`](https://studio.genlayer.com/contracts/0x502852778bfAB94E48918E7A14D28b126D58cc41) |
-| **SkillConsumer** | `0x08CedAECe6BbB6accE3Ed5B6A0708765a2627B77` |
+| | Bradbury (testnet) | Studionet |
+|---|---|---|
+| **SkillVerify** | `0xA89c18414E586741b91e057213ca3007A6E06cCf` | `0x502852778bfAB94E48918E7A14D28b126D58cc41` |
+| **SkillConsumer** | `0x853fB2E9c895Dcb797Fc8D2c68D2F2aDde025f7B` | `0x08CedAECe6BbB6accE3Ed5B6A0708765a2627B77` |
+| | 16/16 config checks | 111 live assertions, 0 failed |
+
+Both networks verified read-only after the fact, including the check that
+matters most — that the consumer reads *this* oracle across the contract
+boundary, rather than the two merely each existing:
+
+```bash
+node test/check_deployment.mjs --network=bradbury
+```
+
+The behaviour below was measured on Studionet, where the write suite ran:
 
 ```
  4 RESOLVED  EXPERT     repos=8    index=8     torvalds / c
@@ -227,6 +238,9 @@ node test/deploy.mjs --network=studionet
 # the export out of history too.
  export GENLAYER_KEYSTORE_PASSWORD='…'
 node test/deploy.mjs --network=bradbury --keystore=mywallet
+
+# verify a deployment this session did not perform — read-only, no key needed
+node test/check_deployment.mjs --network=bradbury
 ```
 
 Artifacts are **21,741** and **11,069** bytes — well under the 48,000 budget and
@@ -247,3 +261,24 @@ mismatch has to surface at deploy time, not at the first claim.
 | [`contracts/SkillConsumer.py`](contracts/SkillConsumer.py) | the composability example |
 | [`test/test_logic.py`](test/test_logic.py) | 350 offline tests |
 | [`tools/ast_audit.py`](tools/ast_audit.py) | the pre-submission audit |
+
+---
+
+## What is not yet proved on Bradbury
+
+The Bradbury pair is deployed and its configuration is verified, but **no
+verification has been submitted there** — `total_verifications` is 0. Every
+behavioural claim above (levels, refunds, freezing, the bounty flow) was
+measured on Studionet.
+
+Running the write suite on Bradbury needs the eleven wallet roles in
+`test/.accounts.json` funded with gas:
+
+```bash
+node test/accounts.mjs          # prints the addresses to fund
+node test/e2e.mjs --network=bradbury
+```
+
+Separately, `settle_stalled` and `resolve_pending` have full offline coverage
+but never fired on chain — GitHub answered every live request, so no record ever
+landed PENDING. Those paths are exercised in tests, not in production.

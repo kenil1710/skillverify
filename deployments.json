@@ -26,8 +26,12 @@
       "e2e": "111 passed, 0 failed, 0 notes"
     },
     "bradbury": {
-      "SkillVerify": null,
-      "SkillConsumer": null
+      "SkillVerify": "0xA89c18414E586741b91e057213ca3007A6E06cCf",
+      "SkillConsumer": "0x853fB2E9c895Dcb797Fc8D2c68D2F2aDde025f7B",
+      "owner": "0xC70FF4C06aEcb796ED712029EE548834764c9Fe8",
+      "deployedAt": "2026-09-07",
+      "verified": "16/16 read-only checks \u2014 node test/check_deployment.mjs --network=bradbury",
+      "note": "Config verified live, including that the consumer reads THIS oracle across the contract boundary. No verifications submitted yet; the E2E write suite needs the wallet roles funded on Bradbury."
     }
   },
   "probes": {
