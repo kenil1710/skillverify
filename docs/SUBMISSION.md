@@ -2,11 +2,10 @@ SkillVerify — a developer skill verification oracle.
 
 "Does GitHub user U write language L?" Validators independently query GitHub's index and agree on EXPERT/PROFICIENT/BEGINNER/NONE. SkillConsumer gates a bounty on it.
 
-FIXED: the compared axis was the level alone, but the stored level was recomputed from the leader's repo_count/total_bytes, which nothing compared. A leader could report NONE, have validators agree, attach repo_count=100, and land EXPERT. The key now binds level+counts, and _apply refuses any level the agreed counts contradict; stored values are the agreed ones. Cost: a repo pushed mid-round lands UNDETERMINED, which writes nothing and is retried.
+FIXED: claim_bounty paid whoever quoted a verified username — a level is a public fact about a USERNAME, not a bearer token. register_identity binds a username to one wallet, permanently; identity_owner rides on every verification document and claim_bounty pays that wallet or nobody. NOT verified_by: verification is permissionless, so a thief buys one and becomes it. Honest limit: first-come registry, no proof of GitHub control yet.
 
-Probing changed the design 3x: one shared 60/hr IP; an unknown `language:` 200s with everything; `language:C++` returns C.
+Proven live, 14/14 real transactions: bob refused, bob buys his own verification of alice's username, refused again, alice paid.
 
-Studio Dev, 18/18 read-only checks — oracle 0x4a5db424A4bF1b839081aFFD6a4a2cC3a8C4614f
-
-369 offline tests · 22 AST checks, mutation-tested.
+Studio Dev — oracle 0x3cC978DfA3FE7A2331634d9d0522E1cAE49e948e
+395 offline tests · 29 AST checks in 10 scans, mutation-tested.
 github.com/kenil1710/skillverify

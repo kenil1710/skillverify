@@ -112,6 +112,15 @@ def _normalize_skill(value) -> str:
  return " ".join(_as_text(value).split()).lower()[:MAX_SKILL]
 def _display_skill(value) -> str:
  return " ".join(_as_text(value).split())[:MAX_SKILL]
+def _normalize_address(value) -> str:
+ return _as_text(value).strip().lower()
+def _is_zero_address(value) -> bool:
+ text = _normalize_address(value)
+ if text == "" or text == "none":
+  return True
+ if text.startswith("0x"):
+  text = text[2:]
+ return text.strip("0") == ""
 def _username_problem(value) -> str:
  text = _as_text(value).strip()
  if text == "":
@@ -344,6 +353,8 @@ class SkillVerify(gl.Contract):
  by_skill: TreeMap[str, DynArray[u32]]
  latest_resolved: TreeMap[str, u32]
  inflight: TreeMap[str, u32]
+ identities: TreeMap[str, Address]
+ identity_at: TreeMap[str, u64]
  last_request_at: TreeMap[Address, u64]
  fee: u128
  cooldown: u64
@@ -356,6 +367,7 @@ class SkillVerify(gl.Contract):
  total_resolved: u32
  total_stalled: u32
  total_pending: u32
+ total_identities: u32
  fees_collected: u128
  fees_withdrawn: u128
  total_refunded: u128
@@ -374,6 +386,7 @@ class SkillVerify(gl.Contract):
   self.total_resolved = u32(0)
   self.total_stalled = u32(0)
   self.total_pending = u32(0)
+  self.total_identities = u32(0)
   self.fees_collected = u128(0)
   self.fees_withdrawn = u128(0)
   self.total_refunded = u128(0)
@@ -388,6 +401,22 @@ class SkillVerify(gl.Contract):
    self._pay(sender, value)
    self.total_refunded = u128(_clamp(int(self.total_refunded) + value, 0, (1 << 128) - 1))
   return json.dumps({"ok": False, "reason": reason, "refunded": str(value)})
+ def _identity_owner(self, username: str) -> str:
+  owner = self.identities.get(username)
+  if owner is None:
+   return ""
+  text = _normalize_address(str(owner))
+  if _is_zero_address(text):
+   return ""
+  return text
+ def _identity_doc(self, username: str) -> dict:
+  owner = self._identity_owner(username)
+  return {
+  "github_username": username,
+  "registered": owner != "",
+  "identity_owner": owner,
+  "identity_registered_at": _as_int(self.identity_at.get(username), 0) if owner else 0,
+  }
  def _pair_key(self, username: str, skill: str) -> str:
   return _normalize_username(username) + "\x1f" + _normalize_skill(skill)
  def _find(self, verification_id: int):
@@ -424,6 +453,7 @@ class SkillVerify(gl.Contract):
   "content_hash": str(record.content_hash),
   "verified_at": verified_at,
   "verified_by": str(record.verified_by),
+  "identity_owner": self._identity_owner(str(record.github_username)),
   "requested_at": int(record.requested_at),
   "age_seconds": age,
   "stale": bool(int(self.freshness_window) > 0 and verified_at > 0 and age > int(self.freshness_window)),
@@ -512,6 +542,38 @@ class SkillVerify(gl.Contract):
     rows.append(self._summary(record))
    i -= 1
   return rows
+ @gl.public.write
+ def register_identity(self, github_username: str) -> str:
+  sender = gl.message.sender_address
+  if self.paused:
+   return json.dumps({"ok": False, "reason": "contract is paused"})
+  problem = _username_problem(github_username)
+  if problem:
+   return json.dumps({"ok": False, "reason": problem})
+  user = _normalize_username(github_username)
+  held = self._identity_owner(user)
+  if held != "":
+   if held == _normalize_address(str(sender)):
+    return json.dumps({
+    "ok": True, "github_username": user, "identity_owner": held,
+    "already_registered": True,
+    "registered_at": _as_int(self.identity_at.get(user), 0),
+    })
+   return json.dumps({
+   "ok": False, "github_username": user, "identity_owner": held,
+   "reason": user + " is already registered to " + held
+   + " and a registration can never be moved",
+   })
+  self.identities[user] = sender
+  self.identity_at[user] = u64(_clamp(self._now(), 0, (1 << 64) - 1))
+  self.total_identities = u32(self._bump(int(self.total_identities)))
+  return json.dumps({
+  "ok": True,
+  "github_username": user,
+  "identity_owner": _normalize_address(str(sender)),
+  "already_registered": False,
+  "registered_at": _as_int(self.identity_at.get(user), 0),
+  })
  @gl.public.write.payable
  def verify_skill(self, github_username: str, skill: str) -> str:
   sender = gl.message.sender_address
@@ -737,12 +799,30 @@ class SkillVerify(gl.Contract):
   row["ok"] = True
   return json.dumps(row)
  @gl.public.view
+ def get_identity(self, github_username: str) -> str:
+  return json.dumps(self._identity_doc(_normalize_username(github_username)))
+ @gl.public.view
+ def owns_identity(self, github_username: str, claimant: str) -> bool:
+  owner = self._identity_owner(_normalize_username(github_username))
+  if owner == "":
+   return False
+  wanted = _normalize_address(claimant)
+  if _is_zero_address(wanted):
+   return False
+  return owner == wanted
+ @gl.public.view
+ def is_verified_identity(self, github_username: str, skill: str, min_level: str, claimant: str) -> bool:
+  if not self.owns_identity(github_username, claimant):
+   return False
+  return self.is_verified(github_username, skill, min_level)
+ @gl.public.view
  def get_stats(self) -> str:
   return json.dumps({
   "total_verifications": int(self.total_verifications),
   "resolved": int(self.total_resolved),
   "pending": int(self.total_pending),
   "stalled": int(self.total_stalled),
+  "identities_registered": int(self.total_identities),
   "users_verified": int(self.distinct_users),
   "skills_verified": int(self.distinct_skills),
   "pairs_verified": int(self.distinct_pairs),
@@ -763,6 +843,7 @@ class SkillVerify(gl.Contract):
   "freshness_window_seconds": int(self.freshness_window),
   "levels": list(LEVELS),
   "axis_values": list(AXIS_VALUES),
+  "identity_binding": "register_identity",
   "statuses": [STATUS_PENDING, STATUS_RESOLVED, STATUS_STALLED],
   "thresholds": {
   "EXPERT": {"repos": EXPERT_REPOS, "bytes": EXPERT_BYTES},
@@ -787,6 +868,7 @@ class SkillVerify(gl.Contract):
    "found": False,
    "github_username": key_user,
    "skill": key_skill,
+   "identity_owner": self._identity_owner(key_user),
    "pending_id": self._pending_id(key_user + "\x1f" + key_skill),
    })
   row = self._summary(record)

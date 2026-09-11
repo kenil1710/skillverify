@@ -18,7 +18,7 @@ import json
 # contiguous leading `#` block as the runner JSON, and a comment there makes the
 # contract undeployable with no error reported but `invalid_contract`.
 #
-# FIVE RULES GOVERN EVERYTHING BELOW. Each was measured or paid for, not assumed.
+# SIX RULES GOVERN EVERYTHING BELOW. Each was measured or paid for, not assumed.
 #
 #   1. A PAYABLE METHOD MAY NEVER RAISE. GenVM rolls back contract STATE on a
 #      UserError but does NOT return the value that rode in with the call - it
@@ -66,6 +66,22 @@ import json
 #      included, may write to a record in a terminal status. _mutable is the one
 #      gate, and test_logic.py parses this file to prove every mutator passes
 #      through it.
+#
+#   6. A VERIFICATION IS EVIDENCE ABOUT A USERNAME, NOT A BEARER TOKEN. Anyone
+#      may ask this oracle about anyone - verification is permissionless and
+#      stays that way - so the answer it publishes says nothing about WHO is
+#      entitled to act on it. A consumer that pays out on a level alone pays
+#      whoever quotes the username first. register_identity is the missing
+#      half: it binds a username to ONE wallet, first come and permanent, and
+#      `identity_owner` rides on every verification document so a consumer can
+#      check the claimant in the same read that fetches the level.
+#
+#      `verified_by` - the wallet that PAID for a verification - is deliberately
+#      NOT that binding, and the difference is the whole hazard. latest_resolved
+#      moves to the newest RESOLVED record for a pair, so a thief who simply
+#      calls verify_skill on someone else's username becomes its verified_by a
+#      block later. A binding that anybody can overwrite by spending a fee is
+#      not a binding. See NOTES.md 12.
 
 # ---------------------------------------------------------------- the ladder
 LEVEL_EXPERT = "EXPERT"
@@ -273,6 +289,32 @@ def _normalize_skill(value) -> str:
 
 def _display_skill(value) -> str:
 	return " ".join(_as_text(value).split())[:MAX_SKILL]
+
+
+def _normalize_address(value) -> str:
+	"""One spelling for a wallet, so a comparison can never fail on case alone.
+
+	EVERY address comparison in this file and in SkillConsumer goes through
+	this. Address(...) renders checksummed on chain and lowercase in some
+	tooling, and an identity gate that compared the two spellings directly
+	would refuse the very wallet it is meant to admit."""
+	return _as_text(value).strip().lower()
+
+
+def _is_zero_address(value) -> bool:
+	"""True for "" and for 0x000…0, which are the same fact in two spellings.
+
+	An Address-valued TreeMap answers a key it has never seen with the ZERO
+	address, NOT with None (NOTES.md 8), so "nobody has registered this
+	username" arrives as 0x000…0 on chain and as None or "" in a stub. All
+	three must read as absent, because the failure mode of getting this wrong
+	is that the zero address owns every unregistered username."""
+	text = _normalize_address(value)
+	if text == "" or text == "none":
+		return True
+	if text.startswith("0x"):
+		text = text[2:]
+	return text.strip("0") == ""
 
 
 def _username_problem(value) -> str:
@@ -713,6 +755,12 @@ class SkillVerify(gl.Contract):
 	# verification 0 is still expressible.
 	inflight: TreeMap[str, u32]
 
+	# username -> the ONE wallet allowed to act as that GitHub user. Written
+	# once by register_identity and never rewritten, which is the property the
+	# whole binding rests on: see rule 6 and NOTES.md 12.
+	identities: TreeMap[str, Address]
+	identity_at: TreeMap[str, u64]
+
 	last_request_at: TreeMap[Address, u64]
 
 	fee: u128
@@ -730,6 +778,7 @@ class SkillVerify(gl.Contract):
 	total_resolved: u32
 	total_stalled: u32
 	total_pending: u32
+	total_identities: u32
 	fees_collected: u128
 	fees_withdrawn: u128
 	total_refunded: u128
@@ -752,6 +801,7 @@ class SkillVerify(gl.Contract):
 		self.total_resolved = u32(0)
 		self.total_stalled = u32(0)
 		self.total_pending = u32(0)
+		self.total_identities = u32(0)
 		self.fees_collected = u128(0)
 		self.fees_withdrawn = u128(0)
 		self.total_refunded = u128(0)
@@ -788,6 +838,34 @@ class SkillVerify(gl.Contract):
 			self._pay(sender, value)
 			self.total_refunded = u128(_clamp(int(self.total_refunded) + value, 0, (1 << 128) - 1))
 		return json.dumps({"ok": False, "reason": reason, "refunded": str(value)})
+
+	def _identity_owner(self, username: str) -> str:
+		"""The wallet bound to an ALREADY-NORMALIZED username, or "" for one
+		nobody has registered.
+
+		Reads correctly under BOTH storage semantics: an Address-valued TreeMap
+		answers a missing key with the zero address on chain and a stub may
+		answer None, and _is_zero_address collapses all of it to "". Getting
+		this wrong does not fail loudly - it silently makes 0x000…0 the owner
+		of every username that was never registered."""
+		owner = self.identities.get(username)
+		if owner is None:
+			return ""
+		text = _normalize_address(str(owner))
+		if _is_zero_address(text):
+			return ""
+		return text
+
+	def _identity_doc(self, username: str) -> dict:
+		"""One shape for the identity half, so get_identity, get_latest and
+		every listing row report it identically."""
+		owner = self._identity_owner(username)
+		return {
+			"github_username": username,
+			"registered": owner != "",
+			"identity_owner": owner,
+			"identity_registered_at": _as_int(self.identity_at.get(username), 0) if owner else 0,
+		}
 
 	def _pair_key(self, username: str, skill: str) -> str:
 		return _normalize_username(username) + "\x1f" + _normalize_skill(skill)
@@ -855,7 +933,16 @@ class SkillVerify(gl.Contract):
 			"top_repos": _top_list(str(record.top_repos)),
 			"content_hash": str(record.content_hash),
 			"verified_at": verified_at,
+			# WHO PAID FOR THIS ANSWER, and nothing more. Not an entitlement:
+			# anybody may verify anybody, and the newest RESOLVED record for a
+			# pair is the one is_verified reads, so this field moves to whoever
+			# most recently spent the fee. Rule 6, and NOTES.md 12.
 			"verified_by": str(record.verified_by),
+			# WHO MAY ACT AS THIS USERNAME, or "" if nobody has registered it.
+			# It rides on every verification document so a consumer can bind
+			# the claimant in the SAME cross-contract read that fetches the
+			# level - one call, and no window between the two answers.
+			"identity_owner": self._identity_owner(str(record.github_username)),
 			"requested_at": int(record.requested_at),
 			"age_seconds": age,
 			"stale": bool(int(self.freshness_window) > 0 and verified_at > 0 and age > int(self.freshness_window)),
@@ -1010,6 +1097,72 @@ class SkillVerify(gl.Contract):
 		return rows
 
 	# ─────────────────────────────────────────────────────────────── writes
+
+	@gl.public.write
+	def register_identity(self, github_username: str) -> str:
+		"""Bind a GitHub username to the calling wallet. FIRST COME, PERMANENT.
+
+		THE HALF THE ORACLE WAS MISSING. verify_skill answers a question about a
+		username; it does not and must not decide who may spend that answer.
+		Without this method a bounty consumer has nothing to check a claimant
+		against, and the first wallet to quote a verified username collects -
+		which is a theft of somebody else's work, not a bug in the level.
+
+		Three properties, and each one is load-bearing:
+
+		  PERMANENT. A binding is written exactly once. If it could be moved,
+		  the wallet that could move it would be the real owner of every
+		  username, and this contract's owner is deliberately not that.
+
+		  IDEMPOTENT for the wallet that already holds it, so a client that
+		  registers before every verification is not punished for it.
+
+		  IT NEVER RAISES, though it is not payable and could. A caller that
+		  learns the username is already taken can go and register another one;
+		  a bare revert tells them nothing (see claim_bounty for the same
+		  reasoning about a non-payable method that still returns ok:false).
+
+		WHAT IT IS NOT: proof of GitHub account control. Nothing on chain has
+		checked that the caller can log in as this username - the honest
+		statement is that this is a first-come registry, and the upgrade path
+		that would make it a proof is written down in NOTES.md 12. What it DOES
+		guarantee is that the binding is fixed before any bounty is posted
+		against it and can never move afterwards, so a claim is answerable by
+		one wallet only."""
+		sender = gl.message.sender_address
+		if self.paused:
+			return json.dumps({"ok": False, "reason": "contract is paused"})
+		problem = _username_problem(github_username)
+		if problem:
+			return json.dumps({"ok": False, "reason": problem})
+
+		user = _normalize_username(github_username)
+		held = self._identity_owner(user)
+		if held != "":
+			if held == _normalize_address(str(sender)):
+				return json.dumps({
+					"ok": True, "github_username": user, "identity_owner": held,
+					"already_registered": True,
+					"registered_at": _as_int(self.identity_at.get(user), 0),
+				})
+			return json.dumps({
+				"ok": False, "github_username": user, "identity_owner": held,
+				"reason": user + " is already registered to " + held
+				+ " and a registration can never be moved",
+			})
+
+		# ── COMMIT. Nothing below can refuse, so the counter counts bindings
+		# ── that exist.
+		self.identities[user] = sender
+		self.identity_at[user] = u64(_clamp(self._now(), 0, (1 << 64) - 1))
+		self.total_identities = u32(self._bump(int(self.total_identities)))
+		return json.dumps({
+			"ok": True,
+			"github_username": user,
+			"identity_owner": _normalize_address(str(sender)),
+			"already_registered": False,
+			"registered_at": _as_int(self.identity_at.get(user), 0),
+		})
 
 	@gl.public.write.payable
 	def verify_skill(self, github_username: str, skill: str) -> str:
@@ -1360,12 +1513,50 @@ class SkillVerify(gl.Contract):
 		return json.dumps(row)
 
 	@gl.public.view
+	def get_identity(self, github_username: str) -> str:
+		"""Who may act as this username, if anybody. NEVER RAISES - an
+		unregistered username answers registered:false, because a view that
+		raises reverts every contract reading it, payable ones included."""
+		return json.dumps(self._identity_doc(_normalize_username(github_username)))
+
+	@gl.public.view
+	def owns_identity(self, github_username: str, claimant: str) -> bool:
+		"""Is `claimant` the wallet registered for this username?
+
+		FALSE for an unregistered username, for a garbage address and for the
+		zero address. The failure mode of every branch here has to be "nobody
+		qualifies" - an identity gate whose error case admits everybody is
+		worse than no gate, because it reads as one."""
+		owner = self._identity_owner(_normalize_username(github_username))
+		if owner == "":
+			return False
+		wanted = _normalize_address(claimant)
+		if _is_zero_address(wanted):
+			return False
+		return owner == wanted
+
+	@gl.public.view
+	def is_verified_identity(self, github_username: str, skill: str, min_level: str, claimant: str) -> bool:
+		"""is_verified, BOUND TO A WALLET. The primitive a consumer that moves
+		money should be reading.
+
+		is_verified answers a question about a username and is correct; it is
+		simply not the question "may this caller collect". Both halves have to
+		hold: the username meets the level AND the caller is the wallet
+		registered for it. Like is_verified it never raises, and every unclear
+		case is False."""
+		if not self.owns_identity(github_username, claimant):
+			return False
+		return self.is_verified(github_username, skill, min_level)
+
+	@gl.public.view
 	def get_stats(self) -> str:
 		return json.dumps({
 			"total_verifications": int(self.total_verifications),
 			"resolved": int(self.total_resolved),
 			"pending": int(self.total_pending),
 			"stalled": int(self.total_stalled),
+			"identities_registered": int(self.total_identities),
 			"users_verified": int(self.distinct_users),
 			"skills_verified": int(self.distinct_skills),
 			"pairs_verified": int(self.distinct_pairs),
@@ -1387,6 +1578,11 @@ class SkillVerify(gl.Contract):
 			"freshness_window_seconds": int(self.freshness_window),
 			"levels": list(LEVELS),
 			"axis_values": list(AXIS_VALUES),
+			# Published so a consumer - and the deploy script - can assert that
+			# this oracle is one that can bind a claimant at all. An older
+			# oracle answers with the field ABSENT, which a consumer must read
+			# as "cannot bind", never as "no binding needed".
+			"identity_binding": "register_identity",
 			"statuses": [STATUS_PENDING, STATUS_RESOLVED, STATUS_STALLED],
 			"thresholds": {
 				"EXPERT": {"repos": EXPERT_REPOS, "bytes": EXPERT_BYTES},
@@ -1413,10 +1609,14 @@ class SkillVerify(gl.Contract):
 		key_user = _normalize_username(github_username)
 		key_skill = _normalize_skill(skill)
 		if record is None:
+			# The identity half is reported even here. A consumer that must
+			# refuse an unregistered claimant needs the binding whether or not
+			# a verification exists, and this keeps that to ONE call.
 			return json.dumps({
 				"found": False,
 				"github_username": key_user,
 				"skill": key_skill,
+				"identity_owner": self._identity_owner(key_user),
 				"pending_id": self._pending_id(key_user + "\x1f" + key_skill),
 			})
 		row = self._summary(record)

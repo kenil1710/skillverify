@@ -1,20 +1,20 @@
 {
   "project": "SkillVerify",
-  "description": "A developer skill verification oracle. Validators independently query GitHub's search index and agree on one level: EXPERT, PROFICIENT, BEGINNER or NONE.",
+  "description": "A developer skill verification oracle. Validators independently query GitHub's search index and agree on one level: EXPERT, PROFICIENT, BEGINNER or NONE. A username is bound to one wallet by register_identity, so a consumer pays the developer rather than whoever quotes their name.",
   "category": "Intelligent Contracts",
   "runner": "py-genlayer:1jb45aa8ynh2a9c9xn3b7qqh8sm5q93hwfp7jqmwsfhh8jpz09h6",
   "artifacts": {
     "build/SkillVerify.min.py": {
       "source": "contracts/SkillVerify.py",
-      "bytes": 22259,
-      "sha256": "31a52420f7138bcef571f22e85a1a2f167ce70d3da30669ee1d02439f30f06dd",
-      "source_sha256": "8795b19861ebb3f3a2c60a397c2572529b2be49f17bfcdb41f0f512889039f77"
+      "bytes": 24439,
+      "sha256": "76f70273bc09c0d440f7a6c8785f2175291fb93c75472914d369786060027b2c",
+      "source_sha256": "d1a6903bb22d7006a4fa46c5160a54410f9b59ac3354d6c36218766d5d0de0ca"
     },
     "build/SkillConsumer.min.py": {
       "source": "contracts/SkillConsumer.py",
-      "bytes": 11069,
-      "sha256": "9bbcbd0b4307ab9d63322c9e19e87b5579046108fc5829c08aa086659cc0d3ee",
-      "source_sha256": "3e4a31088c5f176629a6b35297238b5a71d671163176817f07741c930858fdd9"
+      "bytes": 13145,
+      "sha256": "f653f376f1c9d69ab8c52cd53d63606ad619806c90eaba2979895c044d9c1e9f",
+      "source_sha256": "cb6a11f66db17460e580507d4c4c7986da7756c8c388b0687c29218302c91ac3"
     }
   },
   "deployments": {
@@ -23,29 +23,45 @@
       "chain_id": 61997,
       "rpc": "https://studio-dev.genlayer.com/api",
       "runner": "py-genlayer:5jycge4q8k23462jtb0b9fyey1s9qz928sz2nbrd9mg4sxqg2qng",
-      "SkillVerify": "0x4a5db424A4bF1b839081aFFD6a4a2cC3a8C4614f",
-      "SkillConsumer": "0x1b4E4f334b02f6D6E60e526503f8E35307c73844",
-      "owner": "0x47E433241944d9c0994D8BEf9Cae539Bb9D0e8a7",
+      "SkillVerify": "0x3cC978DfA3FE7A2331634d9d0522E1cAE49e948e",
+      "SkillConsumer": "0xc1F4e26dcB2e0cbDd44FDb12a4a61596eb736B61",
+      "owner": "0x05b6EF29873BE3e7bf600C73298cC9EC9DDe6815",
       "deployedAt": "2026-09-11",
       "explorer": {
-        "SkillVerify": "https://explorer-studio-dev.genlayer.com/address/0x4a5db424A4bF1b839081aFFD6a4a2cC3a8C4614f",
-        "SkillConsumer": "https://explorer-studio-dev.genlayer.com/address/0x1b4E4f334b02f6D6E60e526503f8E35307c73844"
+        "SkillVerify": "https://explorer-studio-dev.genlayer.com/address/0x3cC978DfA3FE7A2331634d9d0522E1cAE49e948e",
+        "SkillConsumer": "https://explorer-studio-dev.genlayer.com/address/0xc1F4e26dcB2e0cbDd44FDb12a4a61596eb736B61"
       },
       "artifacts": {
         "SkillVerify": "build/v06/SkillVerify.v06.py",
         "SkillConsumer": "build/v06/SkillConsumer.v06.py"
       },
       "deploy_tx": {
-        "SkillVerify": "0x899b0faaaf15d8b30d0fb4af4972525fab9d5212c7b14736ea134d5a241e82ef",
-        "SkillConsumer": "0xae7d66da5bc5a1816b07ef783230b6dd6a0546df1a2c23566f2564a7d6802ac3"
+        "SkillVerify": "0x0902301f61a781240d80adcc079730efaa27bbc4b922e360d5cc4f4c86a3e154",
+        "SkillConsumer": "0xf009af792f371cd026bc857cf3a5d4a71fc834a1a4c858cfb6fa534070948da7"
       },
-      "verified": "18/18 read-only checks, including that the consumer reads THIS oracle ACROSS the contract boundary \u2014 get_skill_report answers 'no resolved verification', not 'oracle unreachable'.",
-      "carries_the_consensus_fix": "Yes. _compare_key (mangled to `bd`) and the _apply coherence gate are in the deployed bytes; the level is checked against the agreed counts, not derived from them.",
+      "deploy_script": "node test/deploy_studiodev.mjs",
+      "verified": "23/23 at deploy time (node test/deploy_studiodev.mjs) and 21/21 read-only since (node test/check_deployment.mjs --network=studiodev), including that the consumer reads THIS oracle ACROSS the contract boundary.",
+      "carries_the_identity_fix": "Yes, and it is EXERCISED ON CHAIN rather than asserted. node test/prove_identity_gate.mjs: 14/14. alice registered `torvalds`; bob was refused the registration, refused the claim, allowed to buy his own verification of the same username - which made him its verified_by - and refused the claim AGAIN; alice then claimed and was paid 1 GEN. That last pair is the whole point: binding to verified_by would have paid the thief.",
+      "carries_the_consensus_fix": "Yes, and this deployment finally exercises it against a real validator quorum. Verification 1 is torvalds/C, RESOLVED EXPERT with repo_count 8 and content_hash 4d9b2c5e983bec94 - the same 8 repositories the offline fixture and the round-1 probe measured. _compare_key and the _apply coherence gate are in the deployed bytes.",
+      "onchain_state_after_the_proof": {
+        "total_verifications": 1,
+        "resolved": 1,
+        "identities_registered": 1,
+        "bounties": 2,
+        "total_posted": "2000000000000000000",
+        "total_paid": "2000000000000000000",
+        "open_liability": "0"
+      },
+      "fees": "studio-dev runs the fee policy ENABLED and exposes no feeManagerContract, so the SDK cannot derive a deposit: genlayer-js 1.1.8 has no `fees` argument at all and every deploy reverts at the consensus contract with no reason given. 2.0.0-rc.1 is installed alongside as `genlayer-js-rc` for this network only. estimateFeesDistribution() is NOT enough - it carries feeValue 0 and the contract answers FeeValueMustBeNonZero(1); estimateTransactionFees() adds the ~0.1 GEN deposit. AND A WRITE THAT EMITS A TRANSFER NEEDS MORE: a bounty payout is a message, messages are funded from a per-message allocation, and without one the transaction is ACCEPTED while the execution errors `fee no_matching_allocation # external` - the bounty simply stays OPEN with no revert reason anywhere. estimateTransactionFeesForWrite() simulates the call and derives the allocation. Fund with sim_fundAccount, whose amount must be a HEX STRING - a JS Number serialises as 1e+21 and the node answers 'amount must be a positive integer'.",
+      "superseded": {
+        "SkillVerify": "0x4a5db424A4bF1b839081aFFD6a4a2cC3a8C4614f",
+        "SkillConsumer": "0x1b4E4f334b02f6D6E60e526503f8E35307c73844",
+        "why": "Pre-identity-binding. claim_bounty on that consumer paid whichever wallet quoted a verified username, so any passer-by could collect another developer's bounty. Superseded rather than deleted: the addresses are in the previous submission."
+      },
       "superseded_consumer": {
         "address": "0x7d0749701D340199B601DD51B47C9571c32112fb",
         "why": "DO NOT USE. Deployed before gl.get_contract_at was migrated to gl.contract.get_at. It did not fail loudly: SkillConsumer wraps every oracle read in `except Exception` so an unreachable oracle refunds instead of reverting, so the contract deployed clean, reported the right oracle address from get_terms, and silently degraded EVERY lookup to 'oracle unreachable'."
-      },
-      "fees": "studio-dev runs the fee policy ENABLED and exposes no feeManagerContract, so normalizeTransactionFees(undefined) yields an all-zero distribution and the consensus contract refuses the zero-fee transaction. Each deploy passed an explicit estimateFeesDistribution() and cost a 0.1 GEN deposit. Fund with sim_fundAccount, whose amount must be a HEX STRING \u2014 a JS Number serialises as 1e+21 and the node answers 'amount must be a positive integer'."
+      }
     },
     "studionet": {
       "SkillVerify": "0x502852778bfAB94E48918E7A14D28b126D58cc41",
@@ -53,15 +69,15 @@
       "owner": "0x05b6EF29873BE3e7bf600C73298cC9EC9DDe6815",
       "deployedAt": "2026-09-07",
       "e2e": "111 passed, 0 failed, 0 notes",
-      "note": "SUPERSEDED. Pre-fix artifact (sha256 17b1e838\u2026); the validator compared the level alone."
+      "note": "SUPERSEDED. Pre-fix artifact (sha256 17b1e838…); the validator compared the level alone. Also pre-identity-binding."
     },
     "bradbury": {
       "SkillVerify": "0xA89c18414E586741b91e057213ca3007A6E06cCf",
       "SkillConsumer": "0x853fB2E9c895Dcb797Fc8D2c68D2F2aDde025f7B",
       "owner": "0xC70FF4C06aEcb796ED712029EE548834764c9Fe8",
       "deployedAt": "2026-09-07",
-      "verified": "16/16 read-only checks \u2014 node test/check_deployment.mjs --network=bradbury",
-      "note": "SUPERSEDED. This address holds the pre-fix artifact (sha256 17b1e838\u2026), whose validator compared the level alone and left the repo_count and total_bytes it is checked against unagreed. Awaiting redeploy of sha256 31a52420\u2026 \u2014 node test/deploy.mjs --network=bradbury --keystore=mywallet"
+      "verified": "16/16 read-only checks — node test/check_deployment.mjs --network=bradbury",
+      "note": "SUPERSEDED. This address holds the pre-fix artifact (sha256 17b1e838…), whose validator compared the level alone and left the repo_count and total_bytes it is checked against unagreed. Awaiting redeploy of sha256 31a52420… — node test/deploy.mjs --network=bradbury --keystore=mywallet Also pre-identity-binding."
     }
   },
   "probes": {
@@ -75,13 +91,13 @@
     "runner": "py-genlayer:5jycge4q8k23462jtb0b9fyey1s9qz928sz2nbrd9mg4sxqg2qng",
     "build/v06/SkillVerify.v06.py": {
       "source": "build/SkillVerify.min.py",
-      "bytes": 22423,
-      "sha256": "f07ba38fb09f9b17864e1331e6279d4e37e8b6e2fc6eaf60d10e3397d88d72c3"
+      "bytes": 24625,
+      "sha256": "939675c0f849e24df2b02641cef1c21278952843d361aa14ef9560cebf03c111"
     },
     "build/v06/SkillConsumer.v06.py": {
       "source": "build/SkillConsumer.min.py",
-      "bytes": 11178,
-      "sha256": "113228a154f4f1b5be207eec071eafba516c9ed5cd6da706fbf9402297735bb0"
+      "bytes": 13254,
+      "sha256": "0876128a8b66e4db3996006ecb3779ebb2a431e57ecaf215179274a1c968fa66"
     }
   }
 }

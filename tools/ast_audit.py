@@ -4,7 +4,7 @@ rejected for, checked by parsing the file rather than by remembering.
 
     python3 tools/ast_audit.py
 
-Nine scans. Each one is a rejection somebody actually wrote, turned into
+Ten scans. Each one is a rejection somebody actually wrote, turned into
 something a machine can refuse to let past:
 
   1. WRITE-THEN-RAISE       — a counter incremented before a revert
@@ -23,6 +23,9 @@ something a machine can refuse to let past:
   7. str.replace()          — rejected by the runner
   8. SELF IN A NONDET CLOSURE — pickles storage, kills the leader at 0s
   9. ARTIFACT SIZE          — the ceiling that decides whether this deploys
+ 10. UNBOUND CLAIMANT      — money paid out on a verification without checking
+                               that the caller is the wallet the username is
+                               registered to (SkillVerify / Joaquin)
 
 Exit code is the number of findings, so it can gate a build.
 """
@@ -413,6 +416,90 @@ for path in ARTIFACTS:
 	(ok if within else bad)(f"{path.name} is {size:,} bytes", f"budget {ARTIFACT_BUDGET:,}")
 	if not within:
 		findings.append(f"artifact-size: {path.name} is {size} bytes, over the {ARTIFACT_BUDGET} budget")
+
+# ── 10. UNBOUND CLAIMANT ──────────────────────────────────────────────────
+# A verification is evidence about a USERNAME. Paying out on one without
+# checking who is asking pays whoever quotes the username first, which is what
+# claim_bounty used to do and what a reviewer found. The gate has to be
+# structural, not remembered: one helper, called before the money moves, on a
+# field the oracle actually publishes.
+print("\n10. a payout is bound to the registered wallet  (SkillVerify/Joaquin)")
+
+ctree = trees[SOURCES[1]]
+otree = trees[SOURCES[0]]
+
+# 10a. The oracle can bind at all, and the binding is written in exactly one
+#      place. A second writer - an owner override, a "fix a typo" helper - makes
+#      the binding movable, and movable is not a binding.
+reg = next((n for n in ast.walk(otree) if isinstance(n, ast.FunctionDef) and n.name == "register_identity"), None)
+(ok if reg else bad)("the oracle has a register_identity")
+if not reg:
+	findings.append(f"unbound-claimant: {SOURCES[0].name} — no register_identity; nothing can bind a claimant")
+writers = set()
+for cls in classes(otree):
+	for fn in methods(cls):
+		for node in ast.walk(fn):
+			targets = []
+			if isinstance(node, ast.Assign):
+				targets = node.targets
+			elif isinstance(node, (ast.AugAssign, ast.AnnAssign)):
+				targets = [node.target]
+			for t in targets:
+				base = t
+				while isinstance(base, ast.Subscript):
+					base = base.value
+				if isinstance(base, ast.Attribute) and base.attr in ("identities", "identity_at"):
+					writers.add(fn.name)
+single = writers == {"register_identity"}
+(ok if single else bad)("only register_identity writes the identity table", ", ".join(sorted(writers)) or "nothing")
+if not single:
+	findings.append(f"unbound-claimant: {SOURCES[0].name} — the identity table is written by {sorted(writers)}")
+
+# 10b. The binding rides on the document a consumer already reads, so the level
+#      and the owner cannot be fetched from two different moments.
+summary = next((n for n in ast.walk(otree) if isinstance(n, ast.FunctionDef) and n.name == "_summary"), None)
+carried = summary is not None and "identity_owner" in ast.unparse(summary)
+(ok if carried else bad)("every verification document carries identity_owner")
+if not carried:
+	findings.append(f"unbound-claimant: {SOURCES[0].name} — _summary does not publish identity_owner")
+
+# 10c. The consumer checks it, in ONE helper, and that helper compares the
+#      binding against the caller rather than merely mentioning it.
+gate = next((n for n in ast.walk(ctree) if isinstance(n, ast.FunctionDef) and n.name == "_claim_problem"), None)
+(ok if gate else bad)("the consumer has one claim gate")
+if not gate:
+	findings.append(f"unbound-claimant: {SOURCES[1].name} — no _claim_problem; the gate is inlined or absent")
+else:
+	gsrc = ast.unparse(gate)
+	compares = "identity_owner" in gsrc and "claimant" in gsrc and ("owner != claimant" in gsrc or "claimant != owner" in gsrc)
+	(ok if compares else bad)("the gate compares the binding to the caller")
+	if not compares:
+		findings.append(f"unbound-claimant: {SOURCES[1].name}:{gate.lineno} — _claim_problem does not compare identity_owner to the claimant")
+	# verified_by is WHO PAID for the verification and a thief can become it by
+	# paying for one. It must never be what the gate accepts.
+	no_fallback = "verified_by" not in gsrc
+	(ok if no_fallback else bad)("verified_by is not accepted as a binding")
+	if not no_fallback:
+		findings.append(f"unbound-claimant: {SOURCES[1].name}:{gate.lineno} — the gate falls back to verified_by, which a thief can buy")
+
+# 10d. Every method that moves money on a verification passes through it, and
+#      does so BEFORE the first state write.
+for cls in classes(ctree):
+	for fn in methods(cls):
+		if fn.name != "claim_bounty":
+			continue
+		if not calls_named(fn, "_claim_problem"):
+			finding("unbound-claimant", SOURCES[1], fn.lineno, "claim_bounty does not call the claim gate")
+			bad("claim_bounty holds the gate")
+			break
+		first_write = next((n.lineno for n in ast.walk(fn) if is_state_write(n)), 1 << 30)
+		gate_line = next((n.lineno for n in ast.walk(fn)
+			if isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute)
+			and n.func.attr == "_claim_problem"), 1 << 30)
+		good = gate_line < first_write
+		(ok if good else bad)("claim_bounty refuses before it writes anything")
+		if not good:
+			finding("unbound-claimant", SOURCES[1], fn.lineno, "claim_bounty writes state before the identity gate")
 
 # ── result ────────────────────────────────────────────────────────────────
 print("\n" + "=" * 70)

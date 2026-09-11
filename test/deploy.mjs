@@ -2,11 +2,17 @@
  * Deploy SkillVerify + SkillConsumer.
  *
  *   node deploy.mjs                                     # studionet
+ *   node deploy.mjs --network=studiodev                 # chain 61997, v0.6 runner
  *   node deploy.mjs --network=bradbury --keystore=mywallet
  *   node deploy.mjs --network=bradbury --keystore=mywallet --oracle=0x…  # consumer only
  *
  * Deploys the BUILD ARTIFACTS, never the readable sources, so what is on chain
  * is byte-identical to what deployments.json records a checksum for.
+ *
+ * WHICH ARTIFACTS depends on the network, and getting it wrong deploys cleanly
+ * and then fails at the first storage access. Studio Dev runs the v0.6 runner,
+ * whose API surface differs from the v0.3 sources in contracts/ — those go
+ * through tools/to_v06.py first and build/v06/*.v06.py is what lands there.
  *
  * WHO SIGNS: without --keystore the plaintext `client` account in
  * .accounts.json signs, which is fine on gasless Studionet but holds no gas on
@@ -29,8 +35,9 @@ const account = createAccount(signer.key);
 const wallet = createClient({ chain, account });
 const read = createClient({ chain });
 
-const ORACLE_SRC = new URL("../build/SkillVerify.min.py", import.meta.url);
-const CONSUMER_SRC = new URL("../build/SkillConsumer.min.py", import.meta.url);
+const V06 = networkName === "studiodev";
+const ORACLE_SRC = new URL(V06 ? "../build/v06/SkillVerify.v06.py" : "../build/SkillVerify.min.py", import.meta.url);
+const CONSUMER_SRC = new URL(V06 ? "../build/v06/SkillConsumer.v06.py" : "../build/SkillConsumer.min.py", import.meta.url);
 const FEE = Number(argOf("fee", "0"));
 
 const WALLET_FUNDING = 60n * 10n ** 18n;
@@ -42,6 +49,10 @@ async function preflight() {
   const oracleBytes = readFileSync(ORACLE_SRC).length;
   const consumerBytes = readFileSync(CONSUMER_SRC).length;
   console.log(`  artifacts: SkillVerify ${oracleBytes} bytes, SkillConsumer ${consumerBytes} bytes`);
+  console.log(`  runner:    ${readFileSync(ORACLE_SRC, "utf8").split("\n").find((l) => l.includes("Depends"))?.trim()}`);
+  if (V06 && !readFileSync(ORACLE_SRC, "utf8").includes("gl.storage.TreeMap")) {
+    throw new Error("studiodev needs the v0.6 artifacts — run: python3 tools/to_v06.py");
+  }
   // 37,658 bytes is the largest artifact confirmed on Bradbury across the
   // previous projects; 59,278 is a measured refusal. Both of these are well
   // under the confirmed figure, so this is a note rather than a gate.
@@ -161,6 +172,9 @@ const view = (address, functionName, args = []) =>
 const cfg = JSON.parse(await view(oracle.address, "get_config"));
 const viaConsumer = JSON.parse(await view(consumer.address, "get_oracle_config"));
 const terms = JSON.parse(await view(consumer.address, "get_terms"));
+const identity = JSON.parse(await view(oracle.address, "get_identity", ["nobody-at-all-here"]));
+const zeroOwns = await view(oracle.address, "owns_identity",
+  ["nobody-at-all-here", "0x0000000000000000000000000000000000000000"]);
 
 const checks = [
   ["four levels, lowest first", JSON.stringify(cfg.levels) === '["NONE","BEGINNER","PROFICIENT","EXPERT"]', JSON.stringify(cfg.levels)],
@@ -179,6 +193,14 @@ const checks = [
   // deploy time, and not at the first claim.
   ["both ladders agree", JSON.stringify(terms.levels) === JSON.stringify(cfg.levels), JSON.stringify(terms.levels)],
   ["consumer reads the same oracle", String(viaConsumer.owner ?? "").toLowerCase() === String(cfg.owner).toLowerCase(), String(viaConsumer.owner)],
+  // THE IDENTITY BINDING, asserted at deploy time. A consumer wired to an
+  // oracle that cannot bind a claimant refuses every claim, and a consumer that
+  // does not bind pays whoever asks. Both halves have to be live, and both are
+  // read-only facts the contracts publish about themselves.
+  ["the oracle can bind an identity", cfg.identity_binding === "register_identity", String(cfg.identity_binding)],
+  ["the consumer binds its claimants", terms.claims_are_identity_bound === true, String(terms.claims_are_identity_bound)],
+  ["an unregistered username owns nothing", identity.registered === false && identity.identity_owner === "", JSON.stringify(identity)],
+  ["owns_identity is false for the zero address", zeroOwns === false, String(zeroOwns)],
 ];
 
 let bad = 0;

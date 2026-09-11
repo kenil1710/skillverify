@@ -411,7 +411,107 @@ give an unverified record a verified record's shape.
 
 ---
 
-## 12. Smaller things that cost time
+## 12. A LEVEL IS NOT A BEARER TOKEN
+
+**The second rejection, and the one that cost money rather than correctness.**
+
+`claim_bounty(id, "torvalds")` used to pay whoever sent the transaction. The
+level was real, the verification was real, the consensus behind it was sound —
+and the money went to whichever wallet read a verified username off the explorer
+first. Every one of the 369 tests passed while that was true, because every one
+of them asked whether the *level* was right.
+
+The mistake is a category one, not an oversight. The oracle answers a question
+about a **username**:
+
+> does GitHub user `torvalds` write C, and how much
+
+That is a public fact. Publishing it says nothing about who is entitled to act
+on it, and a consumer that treats the answer as a bearer token pays the first
+person to quote it. The oracle had no way to say who `torvalds` *is* on chain,
+so the consumer had nothing to check a claimant against.
+
+### The fix: one wallet per username, written once
+
+`register_identity(github_username)` binds a username to the caller.
+First come, and **permanent** — there is no method by which the owner, the
+registrant, or anybody else can move a binding once it exists. That is asserted
+by parsing rather than remembered: scan 10 of `tools/ast_audit.py` fails the
+build if any method other than `register_identity` writes `self.identities`.
+
+`identity_owner` then rides on **every** verification document (`_summary`, so
+it cannot go missing from the one view a consumer happens to read), and
+`claim_bounty` refuses unless the caller is that wallet. The binding and the
+level come back in the SAME cross-contract read, so there is no window in which
+a consumer could learn who owns a name from one moment and what it is worth from
+another.
+
+### Why `verified_by` is NOT the binding, though it looks like it
+
+The obvious fix — and the one first proposed — is to bind the claim to
+`verified_by`, the wallet that requested the verification:
+
+```python
+if gl.message.sender_address != verification.verified_by:
+    reject("only the wallet that verified this skill can claim")
+```
+
+**This does not close the hole.** Verification is permissionless, `latest_resolved`
+moves to the NEWEST resolved record for a pair, and the consumer reads whatever
+that points at. So a thief calls `verify_skill("torvalds", "C")` themselves, pays
+the fee, becomes `verified_by` one block later, and claims. A binding anybody can
+buy for the price of a fee is not a binding.
+
+It is not a hypothetical. `test/prove_identity_gate.mjs` performs exactly that
+attack on the live Studio Dev pair — bob verifies a username registered to alice,
+becomes its `verified_by`, and is refused anyway — and
+`test_verifying_someone_elses_username_does_not_earn_the_claim` is the offline
+regression. `verified_by` is still stored and still published, because "who paid
+for this answer" is useful provenance; it is simply not an entitlement, and scan
+10 fails the build if the claim gate ever mentions it.
+
+### What this is NOT: proof of GitHub account control
+
+Nothing on chain has checked that the wallet registering `torvalds` can log in as
+`torvalds`. This is a first-come registry, and the honest statement of what it
+buys is narrow:
+
+- a bounty's claimant is fixed to ONE wallet, chosen before the bounty exists and
+  unchangeable afterwards;
+- a verification can no longer be spent by a passer-by who merely read it;
+- and the binding is a visible, permanent, attributable on-chain act rather than
+  an implicit consequence of paying a fee.
+
+What it does not buy is protection against a **squatter** who registers a name
+they do not own. The mitigation is that a squatted name is worthless to them —
+they cannot make the real developer's bounty payable to themselves without the
+poster choosing to fund a bounty against a name the developer has publicly
+disowned — but that is a mitigation, not a proof.
+
+**The upgrade path is already in the machinery.** This contract's whole purpose
+is proving things about GitHub accounts by consensus. `register_identity` could
+take a proof argument and run the same `gl.vm.run_nondet` block against
+`https://api.github.com/users/<U>`, requiring the account's `bio` (or a gist, or
+the profile README) to contain the caller's address — only the account holder can
+edit those. It is deliberately NOT in this version: it would make registration a
+nondeterministic call subject to the same shared 60/hr rate-limit bucket as
+`verify_skill` (NOTES.md 2 and rule 4), so registration would acquire a PENDING
+state and a retry path, and every test of it would need a GitHub account the test
+suite controls. That is a design, not a patch, and shipping it half-done would be
+worse than shipping a registry that says plainly what it is.
+
+### The zero-address trap, again
+
+`TreeMap[str, Address]` answers a key it has never seen with `0x000…0`, not with
+`None` (NOTES.md 8). Written the obvious way, `self.identities.get(user) ==
+claimant` would make the zero address the registered owner of every unregistered
+username. `_identity_owner` collapses missing, `None` and zero to `""`, both
+contracts treat `""` as "refuse", and `_is_zero_address` exists on both sides of
+the boundary so neither can drift.
+
+---
+
+## 13. Smaller things that cost time
 
 - **The runner JSON is the leading `#` block.** Nothing may sit between line 1
   and the `import`. A comment there makes the contract undeployable and the only

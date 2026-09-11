@@ -4,52 +4,52 @@ import genlayer as gl
 from genlayer import *
 from dataclasses import dataclass
 import json
-aq = "EXPERT"
-Y = "PROFICIENT"
-af = "BEGINNER"
-aa = "NONE"
-bC = (aa, af, Y, aq)
-aW = 5
-aX = 1000
-ar = 3
-at = 500
-aH = 1
-U = "NO_SUCH_USER"
-j = "UNAVAILABLE"
-bq = (aq, Y, af, aa, U, j)
-aI = "PENDING"
-ab = "RESOLVED"
-Q = "STALLED"
-bm = (ab, Q)
-O = 39
-aj = 40
-am = 3
-an = 100
-br = 100
-bn = 100
-bs = 0
-bj = 10**18
-bw = 300
-aY = 86400
-aF = 3600
-ak = 60
-al = 30 * 86400
-bo = 0
-aS = 365 * 86400
-aP = 50
-ac = 1000
-bt = "github_repo_size_kb"
-aT = "https://api.github.com/search/repositories"
-ca = "0x0000000000000000000000000000000000000000"
-ct = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~"
-da = "0123456789ABCDEF"
-def f(value, cb: int) -> int:
+aB = "EXPERT"
+ad = "PROFICIENT"
+am = "BEGINNER"
+ah = "NONE"
+bK = (ah, am, ad, aB)
+bg = 5
+bh = 1000
+aC = 3
+aD = 500
+aQ = 1
+Y = "NO_SUCH_USER"
+k = "UNAVAILABLE"
+by = (aB, ad, am, ah, Y, k)
+aR = "PENDING"
+ai = "RESOLVED"
+U = "STALLED"
+bv = (ai, U)
+S = 39
+ar = 40
+av = 3
+aw = 100
+bz = 100
+bw = 100
+bA = 0
+bs = 10**18
+bE = 300
+bi = 86400
+aO = 3600
+at = 60
+au = 30 * 86400
+bx = 0
+bc = 365 * 86400
+aY = 50
+aj = 1000
+bB = "github_repo_size_kb"
+bd = "https://api.github.com/search/repositories"
+ck = "0x0000000000000000000000000000000000000000"
+cC = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~"
+dj = "0123456789ABCDEF"
+def g(value, cl: int) -> int:
  try:
   if isinstance(value, bool):
-   return cb
+   return cl
   return int(value)
  except Exception:
-  return cb
+  return cl
 def v(value) -> str:
  if value is None:
   return ""
@@ -59,276 +59,285 @@ def v(value) -> str:
   return str(value)
  except Exception:
   return ""
-def t(value: int, db: int, cL: int) -> int:
- if value < db:
-  return db
- if value > cL:
-  return cL
+def r(value: int, dk: int, cU: int) -> int:
+ if value < dk:
+  return dk
+ if value > cU:
+  return cU
  return value
-def bx(y: int, m: int, d: int) -> int:
+def bF(y: int, m: int, d: int) -> int:
  y -= 1 if m <= 2 else 0
- dc = (y if y >= 0 else y - 399) // 400
- cM = y - dc * 400
- dm = (153 * (m + (-3 if m > 2 else 9)) + 2) // 5 + d - 1
- dn = cM * 365 + cM // 4 - cM // 100 + dm
- return dc * 146097 + dn - 719468
-def bD(value: str) -> int:
+ dl = (y if y >= 0 else y - 399) // 400
+ cV = y - dl * 400
+ dv = (153 * (m + (-3 if m > 2 else 9)) + 2) // 5 + d - 1
+ dw = cV * 365 + cV // 4 - cV // 100 + dv
+ return dl * 146097 + dw - 719468
+def bL(value: str) -> int:
  if not isinstance(value, str) or len(value) < 19:
   return 0
  try:
-  df = int(value[0:4])
-  cu = int(value[5:7])
-  cN = int(value[8:10])
-  cO = int(value[11:13])
-  cA = int(value[14:16])
-  cB = int(value[17:19])
+  do = int(value[0:4])
+  cD = int(value[5:7])
+  cW = int(value[8:10])
+  cX = int(value[11:13])
+  cJ = int(value[14:16])
+  cK = int(value[17:19])
  except Exception:
   return 0
- if cu < 1 or cu > 12 or cN < 1 or cN > 31:
+ if cD < 1 or cD > 12 or cW < 1 or cW > 31:
   return 0
- if cO > 23 or cA > 59 or cB > 60:
+ if cX > 23 or cJ > 59 or cK > 60:
   return 0
- return bx(df, cu, cN) * 86400 + cO * 3600 + cA * 60 + cB
-def dg(text: str) -> str:
+ return bF(do, cD, cW) * 86400 + cX * 3600 + cJ * 60 + cK
+def dp(text: str) -> str:
  if not isinstance(text, str):
   return ""
  if text == "":
   return ""
  h = 0xCBF29CE484222325
- for cc in text.encode("utf-8"):
-  h = ((h ^ cc) * 0x100000001B3) & 0xFFFFFFFFFFFFFFFF
+ for cm in text.encode("utf-8"):
+  h = ((h ^ cm) * 0x100000001B3) & 0xFFFFFFFFFFFFFFFF
  return "%016x" % h
-def bX(L: str, g: str, z: str, r: int, n: int) -> str:
- cW = [
- l(L),
- k(g),
- v(z),
- str(f(r, 0)),
- str(f(n, 0)),
+def cf(x: str, j: str, A: str, t: int, o: int) -> str:
+ df = [
+ f(x),
+ l(j),
+ v(A),
+ str(g(t, 0)),
+ str(g(o, 0)),
  ]
- return dg("\x1f".join(cW))
-def l(value) -> str:
+ return dp("\x1f".join(df))
+def f(value) -> str:
  text = v(value).strip()
- return text.lower()[:O]
-def k(value) -> str:
- return " ".join(v(value).split()).lower()[:aj]
-def bR(value) -> str:
- return " ".join(v(value).split())[:aj]
-def bp(value) -> str:
+ return text.lower()[:S]
+def l(value) -> str:
+ return " ".join(v(value).split()).lower()[:ar]
+def bZ(value) -> str:
+ return " ".join(v(value).split())[:ar]
+def D(value) -> str:
+ return v(value).strip().lower()
+def aE(value) -> bool:
+ text = D(value)
+ if text == "" or text == "none":
+  return True
+ if text.startswith("0x"):
+  text = text[2:]
+ return text.strip("0") == ""
+def ay(value) -> str:
  text = v(value).strip()
  if text == "":
   return "github_username is empty"
- if len(text) > O:
-  return "github_username exceeds " + str(O) + " characters"
- bk = text.lower()
- for ch in bk:
+ if len(text) > S:
+  return "github_username exceeds " + str(S) + " characters"
+ bt = text.lower()
+ for ch in bt:
   if not (("a" <= ch <= "z") or ("0" <= ch <= "9") or ch == "-"):
    return "github_username may only contain letters, digits and hyphens"
- if bk.startswith("-") or bk.endswith("-"):
+ if bt.startswith("-") or bt.endswith("-"):
   return "github_username may not start or end with a hyphen"
- if bk.find("--") >= 0:
+ if bt.find("--") >= 0:
   return "github_username may not contain consecutive hyphens"
  return ""
-def bS(value) -> str:
+def ca(value) -> str:
  text = v(value)
- aZ = " ".join(text.split())
- if aZ == "":
+ bj = " ".join(text.split())
+ if bj == "":
   return "skill is empty"
- if len(aZ) > aj:
-  return "skill exceeds " + str(aj) + " characters"
- for ch in aZ.lower():
+ if len(bj) > ar:
+  return "skill exceeds " + str(ar) + " characters"
+ for ch in bj.lower():
   ok = ("a" <= ch <= "z") or ("0" <= ch <= "9") or ch in " +#-._"
   if not ok:
    return "skill may only contain letters, digits, spaces and + # - . _"
  return ""
-def cP(value: str) -> str:
+def cY(value: str) -> str:
  if not isinstance(value, str):
   return ""
- cQ = []
- for cc in value.encode("utf-8"):
-  ch = chr(cc)
-  if ch in ct:
-   cQ.append(ch)
+ cZ = []
+ for cm in value.encode("utf-8"):
+  ch = chr(cm)
+  if ch in cC:
+   cZ.append(ch)
   else:
-   cQ.append("%" + da[(cc >> 4) & 0xF] + da[cc & 0xF])
- return "".join(cQ)
-def cn(L: str, g: str) -> str:
- bT = cP(l(L))
- ba = cP(k(g))
- q = "user:" + bT + "%20language:%22" + ba + "%22"
- return aT + "?per_page=" + str(br) + "&sort=updated&q=" + q
-def bl(z) -> int:
- text = v(z)
- for i in range(len(bC)):
-  if bC[i] == text:
+   cZ.append("%" + dj[(cm >> 4) & 0xF] + dj[cm & 0xF])
+ return "".join(cZ)
+def cw(x: str, j: str) -> str:
+ Z = cY(f(x))
+ bk = cY(l(j))
+ q = "user:" + Z + "%20language:%22" + bk + "%22"
+ return bd + "?per_page=" + str(bz) + "&sort=updated&q=" + q
+def bu(A) -> int:
+ text = v(A)
+ for i in range(len(bK)):
+  if bK[i] == text:
    return i
  return -1
-def bE(r: int, n: int) -> str:
- bF = f(r, 0)
- cv = f(n, 0)
- if bF >= aW and cv >= aX:
-  return aq
- if bF >= ar and cv >= at:
-  return Y
- if bF >= aH:
-  return af
- return aa
-def cR(ag, g: str) -> dict:
- ba = k(g)
- if not isinstance(ag, dict):
-  return {"ok": False, "repo_count": 0, "total_bytes": 0, "index_count": 0, "top_repos": [], "level": aa}
- cw = ag.get("items")
- if not isinstance(cw, list):
-  cw = []
- aJ = []
- bG = 0
- for bY in cw[:bn]:
-  if not isinstance(bY, dict):
+def bM(t: int, o: int) -> str:
+ bN = g(t, 0)
+ cE = g(o, 0)
+ if bN >= bg and cE >= bh:
+  return aB
+ if bN >= aC and cE >= aD:
+  return ad
+ if bN >= aQ:
+  return am
+ return ah
+def da(an, j: str) -> dict:
+ bk = l(j)
+ if not isinstance(an, dict):
+  return {"ok": False, "repo_count": 0, "total_bytes": 0, "index_count": 0, "top_repos": [], "level": ah}
+ cF = an.get("items")
+ if not isinstance(cF, list):
+  cF = []
+ aS = []
+ bO = 0
+ for ci in cF[:bw]:
+  if not isinstance(ci, dict):
    continue
-  if k(bY.get("language")) != ba:
+  if l(ci.get("language")) != bk:
    continue
-  ah = bY.get("size", 0)
-  if isinstance(ah, bool) or not isinstance(ah, int):
-   ah = 0
-  ah = t(int(ah), 0, 1 << 40)
-  cd = v(bY.get("name"))[:an]
-  aJ.append({"name": cd, "bytes": ah * 1024})
-  bG += ah * 1024
- aJ.sort(key=lambda au: (-au["bytes"], au["name"]))
+  ao = ci.get("size", 0)
+  if isinstance(ao, bool) or not isinstance(ao, int):
+   ao = 0
+  ao = r(int(ao), 0, 1 << 40)
+  cn = v(ci.get("name"))[:aw]
+  aS.append({"name": cn, "bytes": ao * 1024})
+  bO += ao * 1024
+ aS.sort(key=lambda aF: (-aF["bytes"], aF["name"]))
  return {
  "ok": True,
- "repo_count": len(aJ),
- "total_bytes": bG,
- "index_count": t(f(ag.get("total_count", 0), 0), 0, 1 << 40),
- "incomplete": bool(ag.get("incomplete_results", False)),
- "top_repos": [au["name"] for au in aJ[:am]],
- "level": bE(len(aJ), bG),
+ "repo_count": len(aS),
+ "total_bytes": bO,
+ "index_count": r(g(an.get("total_count", 0), 0), 0, 1 << 40),
+ "incomplete": bool(an.get("incomplete_results", False)),
+ "top_repos": [aF["name"] for aF in aS[:av]],
+ "level": bM(len(aS), bO),
  }
-def bV(bb) -> int:
- if bb is None:
+def cd(bl) -> int:
+ if bl is None:
   return 0
  try:
-  return len(bb)
+  return len(bl)
  except Exception:
   return 0
-def bW(do) -> list:
- text = v(do)
+def ce(dx) -> list:
+ text = v(dx)
  if text == "":
   return []
  try:
-  bc = json.loads(text)
+  bm = json.loads(text)
  except Exception:
   return []
- if not isinstance(bc, list):
+ if not isinstance(bm, list):
   return []
- return [v(cd)[:an] for cd in bc[:am]]
-def cx(bH) -> int:
- s = getattr(bH, "status_code", None)
+ return [v(cn)[:aw] for cn in bm[:av]]
+def cG(bP) -> int:
+ s = getattr(bP, "status_code", None)
  if s is None:
-  s = getattr(bH, "status", None)
+  s = getattr(bP, "status", None)
  if s is None:
   return 0
- return f(s, 0)
-def cG(bH) -> str:
- b = getattr(bH, "body", None)
+ return g(s, 0)
+def cP(bP) -> str:
+ b = getattr(bP, "body", None)
  if b is None:
-  b = getattr(bH, "text", None)
+  b = getattr(bP, "text", None)
  if b is None:
   return ""
  if isinstance(b, bytes):
   return b.decode("utf-8", errors="ignore")
  return v(b)
-def cC(L: str, g: str) -> dict:
- dd = cn(L, g)
+def cL(x: str, j: str) -> dict:
+ dm = cw(x, j)
  try:
   try:
-   bH = gl.nondet.web.request(dd, method="GET")
+   bP = gl.nondet.web.request(dm, method="GET")
   except AttributeError:
-   bH = gl.nondet.web.get(dd)
-  status = cx(bH)
-  body = cG(bH)
- except Exception as dp:
-  return {"axis": j, "status": 0, "reason": "fetch failed: " + v(dp)[:160]}
+   bP = gl.nondet.web.get(dm)
+  status = cG(bP)
+  body = cP(bP)
+ except Exception as dy:
+  return {"axis": k, "status": 0, "reason": "fetch failed: " + v(dy)[:160]}
  if status == 422:
-  return {"axis": U, "status": status, "reason": "GitHub cannot search this user"}
+  return {"axis": Y, "status": status, "reason": "GitHub cannot search this user"}
  if status != 200:
-  return {"axis": j, "status": status, "reason": "GitHub answered " + str(status)}
+  return {"axis": k, "status": status, "reason": "GitHub answered " + str(status)}
  try:
-  ag = json.loads(body)
+  an = json.loads(body)
  except Exception:
-  return {"axis": j, "status": status, "reason": "response was not JSON"}
- av = cR(ag, g)
- if not av["ok"]:
-  return {"axis": j, "status": status, "reason": "response had no items array"}
+  return {"axis": k, "status": status, "reason": "response was not JSON"}
+ aG = da(an, j)
+ if not aG["ok"]:
+  return {"axis": k, "status": status, "reason": "response had no items array"}
  return {
- "axis": av["level"],
+ "axis": aG["level"],
  "status": status,
- "repo_count": av["repo_count"],
- "total_bytes": av["total_bytes"],
- "index_count": av["index_count"],
- "incomplete": av["incomplete"],
- "top_repos": av["top_repos"],
+ "repo_count": aG["repo_count"],
+ "total_bytes": aG["total_bytes"],
+ "index_count": aG["index_count"],
+ "incomplete": aG["incomplete"],
+ "top_repos": aG["top_repos"],
  "reason": "",
  }
-def ce(aw) -> str:
- if not isinstance(aw, dict):
-  return j
- ao = v(aw.get("axis"))
- if ao in bq:
-  return ao
- return j
-def bd(aw) -> str:
- ao = ce(aw)
- if bl(ao) < 0:
-  return ao
- if not isinstance(aw, dict):
-  return j
- bF = f(aw.get("repo_count"), -1)
- cv = f(aw.get("total_bytes"), -1)
- return ao + "\x1f" + str(bF) + "\x1f" + str(cv)
-def az(L: str, g: str) -> dict:
- bT = str(L)
- ba = str(g)
+def co(aH) -> str:
+ if not isinstance(aH, dict):
+  return k
+ ax = v(aH.get("axis"))
+ if ax in by:
+  return ax
+ return k
+def bn(aH) -> str:
+ ax = co(aH)
+ if bu(ax) < 0:
+  return ax
+ if not isinstance(aH, dict):
+  return k
+ bN = g(aH.get("repo_count"), -1)
+ cE = g(aH.get("total_bytes"), -1)
+ return ax + "\x1f" + str(bN) + "\x1f" + str(cE)
+def aK(x: str, j: str) -> dict:
+ Z = str(x)
+ bk = str(j)
  def leader_fn() -> dict:
-  return cC(bT, ba)
- def validator_fn(aU: gl.vm.Result) -> bool:
-  if not isinstance(aU, gl.vm.Return):
+  return cL(Z, bk)
+ def validator_fn(be: gl.vm.Result) -> bool:
+  if not isinstance(be, gl.vm.Return):
    leader_fn()
    return False
-  dh = bd(leader_fn())
-  cS = bd(aU.calldata)
-  return dh == cS
- A = gl.vm.run_nondet(leader_fn, validator_fn)
- if not isinstance(A, dict):
-  return {"axis": j, "status": 0, "reason": "nondet returned no document"}
- return A
+  dq = bn(leader_fn())
+  db = bn(be.calldata)
+  return dq == db
+ B = gl.vm.run_nondet(leader_fn, validator_fn)
+ if not isinstance(B, dict):
+  return {"axis": k, "status": 0, "reason": "nondet returned no document"}
+ return B
 @gl.storage.allow
 @dataclass
 class Verification:
- c: u32
- e: str
- ax: str
- g: str
- aV: str
+ e: u32
+ c: str
+ aI: str
+ j: str
+ bf: str
  status: str
- z: str
- r: u32
- n: u128
- M: u32
- aA: str
- H: str
+ A: str
+ t: u32
+ o: u128
+ Q: u32
+ aL: str
+ L: str
  p: u64
- bu: Address
- ad: u64
+ bC: Address
+ ak: u64
  u: u64
- cf: u128
- be: u128
- bv: str
- G: u32
- ap: bool
- Z: bool
+ cp: u128
+ bo: u128
+ bD: str
+ K: u32
+ az: bool
+ ae: bool
  w: str
- V: u32
+ aa: u32
 @gl.evm.contract_interface
 class _Payee:
  class View:
@@ -336,554 +345,627 @@ class _Payee:
  class Write:
   pass
 class SkillVerify(gl.contract.Contract):
- bI: Address
- bf: bool
- W: gl.storage.TreeMap[u32, Verification]
- by: gl.storage.DynArray[u32]
- aK: u32
- cJ: gl.storage.TreeMap[str, gl.storage.DynArray[u32]]
- cp: gl.storage.TreeMap[str, gl.storage.DynArray[u32]]
- cg: gl.storage.TreeMap[str, gl.storage.DynArray[u32]]
- ae: gl.storage.TreeMap[str, u32]
- bz: gl.storage.TreeMap[str, u32]
- aB: gl.storage.TreeMap[Address, u64]
- aL: u128
- P: u64
+ O: Address
+ aT: bool
+ ab: gl.storage.TreeMap[u32, Verification]
+ bG: gl.storage.DynArray[u32]
+ aU: u32
+ cS: gl.storage.TreeMap[str, gl.storage.DynArray[u32]]
+ cy: gl.storage.TreeMap[str, gl.storage.DynArray[u32]]
+ cq: gl.storage.TreeMap[str, gl.storage.DynArray[u32]]
+ al: gl.storage.TreeMap[str, u32]
+ bH: gl.storage.TreeMap[str, u32]
+ bQ: gl.storage.TreeMap[str, Address]
+ aq: gl.storage.TreeMap[str, u64]
+ aM: gl.storage.TreeMap[Address, u64]
+ aV: u128
+ T: u64
  u: u64
- B: u64
- E: u32
+ C: u64
+ H: u32
+ V: u32
  R: u32
- N: u32
- S: u32
- D: u32
- X: u32
- x: u32
- I: u128
- J: u128
- T: u128
- def __init__(self, aL: int = bs):
-  self.bI = gl.message.sender_address
-  self.bf = False
-  self.aK = u32(1)
-  self.aL = u128(t(f(aL, bs), 0, bj))
-  self.P = u64(bw)
-  self.u = u64(aF)
-  self.B = u64(bo)
-  self.E = u32(0)
+ W: u32
+ G: u32
+ ac: u32
+ z: u32
+ P: u32
+ M: u128
+ N: u128
+ X: u128
+ def __init__(self, aV: int = bA):
+  self.O = gl.message.sender_address
+  self.aT = False
+  self.aU = u32(1)
+  self.aV = u128(r(g(aV, bA), 0, bs))
+  self.T = u64(bE)
+  self.u = u64(aO)
+  self.C = u64(bx)
+  self.H = u32(0)
+  self.V = u32(0)
   self.R = u32(0)
-  self.N = u32(0)
-  self.S = u32(0)
-  self.D = u32(0)
-  self.X = u32(0)
-  self.x = u32(0)
-  self.I = u128(0)
-  self.J = u128(0)
-  self.T = u128(0)
- def ci(self) -> int:
-  return bD(gl.message.raw.get("datetime", ""))
- def cH(self, to: Address, bJ: int) -> None:
-  if bJ <= 0:
+  self.W = u32(0)
+  self.G = u32(0)
+  self.ac = u32(0)
+  self.z = u32(0)
+  self.P = u32(0)
+  self.M = u128(0)
+  self.N = u128(0)
+  self.X = u128(0)
+ def cb(self) -> int:
+  return bL(gl.message.raw.get("datetime", ""))
+ def cQ(self, to: Address, bR: int) -> None:
+  if bR <= 0:
    return
-  _Payee(Address(str(to))).emit_transfer(value=u256(int(bJ)))
- def ai(self, K: Address, value: int, bg: str) -> str:
+  _Payee(Address(str(to))).emit_transfer(value=u256(int(bR)))
+ def ap(self, E: Address, value: int, bp: str) -> str:
   if value > 0:
-   self.cH(K, value)
-   self.T = u128(t(int(self.T) + value, 0, (1 << 128) - 1))
-  return json.dumps({"ok": False, "reason": bg, "refunded": str(value)})
- def aC(self, L: str, g: str) -> str:
-  return l(L) + "\x1f" + k(g)
- def cy(self, c: int):
-  return self.W.get(u32(t(f(c, -1), 0, (1 << 32) - 1)))
- def cj(self, a) -> bool:
+   self.cQ(E, value)
+   self.X = u128(r(int(self.X) + value, 0, (1 << 128) - 1))
+  return json.dumps({"ok": False, "reason": bp, "refunded": str(value)})
+ def J(self, x: str) -> str:
+  O = self.bQ.get(x)
+  if O is None:
+   return ""
+  text = D(str(O))
+  if aE(text):
+   return ""
+  return text
+ def cg(self, x: str) -> dict:
+  O = self.J(x)
+  return {
+  "github_username": x,
+  "registered": O != "",
+  "identity_owner": O,
+  "identity_registered_at": g(self.aq.get(x), 0) if O else 0,
+  }
+ def aN(self, x: str, j: str) -> str:
+  return f(x) + "\x1f" + l(j)
+ def cH(self, e: int):
+  return self.ab.get(u32(r(g(e, -1), 0, (1 << 32) - 1)))
+ def cr(self, a) -> bool:
   if a is None:
    return False
-  return str(a.status) not in bm
- def ck(self, key: str, cX, c: int) -> bool:
-  bb = cX.get_or_insert_default(key)
-  cY = len(bb) == 0
-  bb.append(u32(c))
-  return cY
- def aD(self, co: int) -> int:
-  return t(co + 1, 0, (1 << 32) - 1)
- def aQ(self, a) -> dict:
-  aM = self.ci()
+  return str(a.status) not in bv
+ def cs(self, key: str, dg, e: int) -> bool:
+  bl = dg.get_or_insert_default(key)
+  dh = len(bl) == 0
+  bl.append(u32(e))
+  return dh
+ def aA(self, cx: int) -> int:
+  return r(cx + 1, 0, (1 << 32) - 1)
+ def aZ(self, a) -> dict:
+  aW = self.cb()
   p = int(a.p)
-  de = (aM - p) if (p > 0 and aM > p) else 0
+  dn = (aW - p) if (p > 0 and aW > p) else 0
   return {
-  "verification_id": int(a.c),
-  "github_username": str(a.e),
-  "username_display": str(a.ax),
-  "skill": str(a.g),
-  "skill_display": str(a.aV),
+  "verification_id": int(a.e),
+  "github_username": str(a.c),
+  "username_display": str(a.aI),
+  "skill": str(a.j),
+  "skill_display": str(a.bf),
   "status": str(a.status),
-  "level": str(a.z),
-  "level_rank": bl(str(a.z)),
-  "repo_count": int(a.r),
-  "total_bytes": str(int(a.n)),
-  "bytes_basis": str(a.bv),
-  "index_count": int(a.M),
-  "top_repos": bW(str(a.aA)),
-  "content_hash": str(a.H),
+  "level": str(a.A),
+  "level_rank": bu(str(a.A)),
+  "repo_count": int(a.t),
+  "total_bytes": str(int(a.o)),
+  "bytes_basis": str(a.bD),
+  "index_count": int(a.Q),
+  "top_repos": ce(str(a.aL)),
+  "content_hash": str(a.L),
   "verified_at": p,
-  "verified_by": str(a.bu),
-  "requested_at": int(a.ad),
-  "age_seconds": de,
-  "stale": bool(int(self.B) > 0 and p > 0 and de > int(self.B)),
+  "verified_by": str(a.bC),
+  "identity_owner": self.J(str(a.c)),
+  "requested_at": int(a.ak),
+  "age_seconds": dn,
+  "stale": bool(int(self.C) > 0 and p > 0 and dn > int(self.C)),
   "resolve_window": int(a.u),
-  "settle_stalled_at": int(a.ad) + int(a.u),
-  "fee_paid": str(int(a.cf)),
-  "fee_snapshot": str(int(a.be)),
-  "attempts": int(a.G),
-  "user_found": bool(a.ap),
-  "incomplete_index": bool(a.Z),
+  "settle_stalled_at": int(a.ak) + int(a.u),
+  "fee_paid": str(int(a.cp)),
+  "fee_snapshot": str(int(a.bo)),
+  "attempts": int(a.K),
+  "user_found": bool(a.az),
+  "incomplete_index": bool(a.ae),
   "last_reason": str(a.w),
-  "http_status": int(a.V),
+  "http_status": int(a.aa),
   }
- def cD(self, a, A: dict) -> dict:
-  ao = ce(A)
-  status_code = t(f(A.get("status"), 0), 0, (1 << 32) - 1)
-  bg = v(A.get("reason"))[:200]
-  if ao == j:
-   a.G = u32(t(int(a.G) + 1, 0, ac))
-   a.w = bg if bg else "source unavailable"
-   a.V = u32(status_code)
-   return {"resolved": False, "axis": ao, "reason": a.w}
-  if ao == U:
-   z = aa
-   r = 0
-   n = 0
-   M = 0
-   cT = []
-   bK = False
-   bL = False
+ def cM(self, a, B: dict) -> dict:
+  ax = co(B)
+  status_code = r(g(B.get("status"), 0), 0, (1 << 32) - 1)
+  bp = v(B.get("reason"))[:200]
+  if ax == k:
+   a.K = u32(r(int(a.K) + 1, 0, aj))
+   a.w = bp if bp else "source unavailable"
+   a.aa = u32(status_code)
+   return {"resolved": False, "axis": ax, "reason": a.w}
+  if ax == Y:
+   A = ah
+   t = 0
+   o = 0
+   Q = 0
+   dc = []
+   bS = False
+   bT = False
   else:
-   z = ao
-   r = t(f(A.get("repo_count"), 0), 0, (1 << 32) - 1)
-   n = t(f(A.get("total_bytes"), 0), 0, (1 << 128) - 1)
-   M = t(f(A.get("index_count"), 0), 0, (1 << 32) - 1)
-   cq = A.get("top_repos")
-   cT = []
-   if isinstance(cq, list):
-    for cd in cq[:am]:
-     cT.append(v(cd)[:an])
-   bK = True
-   bL = bool(A.get("incomplete", False))
-   bM = bE(r, n)
-   if bM != z:
-    a.G = u32(t(int(a.G) + 1, 0, ac))
+   A = ax
+   t = r(g(B.get("repo_count"), 0), 0, (1 << 32) - 1)
+   o = r(g(B.get("total_bytes"), 0), 0, (1 << 128) - 1)
+   Q = r(g(B.get("index_count"), 0), 0, (1 << 32) - 1)
+   cz = B.get("top_repos")
+   dc = []
+   if isinstance(cz, list):
+    for cn in cz[:av]:
+     dc.append(v(cn)[:aw])
+   bS = True
+   bT = bool(B.get("incomplete", False))
+   bU = bM(t, o)
+   if bU != A:
+    a.K = u32(r(int(a.K) + 1, 0, aj))
     a.w = (
-    "incoherent result: level " + z + " with " + str(r)
-    + " repos and " + str(n) + " bytes, which is " + bM
+    "incoherent result: level " + A + " with " + str(t)
+    + " repos and " + str(o) + " bytes, which is " + bU
     )[:200]
-    a.V = u32(status_code)
-    return {"resolved": False, "axis": j,
+    a.aa = u32(status_code)
+    return {"resolved": False, "axis": k,
     "incoherent": True, "reason": a.w}
-  a.z = z
-  a.r = u32(r)
-  a.n = u128(n)
-  a.M = u32(M)
-  a.aA = json.dumps(cT)
-  a.ap = bK
-  a.Z = bL
-  a.V = u32(status_code)
-  a.w = bg
-  a.G = u32(t(int(a.G) + 1, 0, ac))
-  a.p = u64(t(self.ci(), 0, (1 << 64) - 1))
-  a.H = bX(
-  str(a.e), str(a.g), z, r, n,
+  a.A = A
+  a.t = u32(t)
+  a.o = u128(o)
+  a.Q = u32(Q)
+  a.aL = json.dumps(dc)
+  a.az = bS
+  a.ae = bT
+  a.aa = u32(status_code)
+  a.w = bp
+  a.K = u32(r(int(a.K) + 1, 0, aj))
+  a.p = u64(r(self.cb(), 0, (1 << 64) - 1))
+  a.L = cf(
+  str(a.c), str(a.j), A, t, o,
   )
-  a.status = ab
-  return {"resolved": True, "axis": ao, "level": z}
- def bA(self, key: str) -> None:
-  self.bz[key] = u32(0)
- def aG(self, key: str) -> int:
-  return f(self.bz.get(key), 0) - 1
- def cI(self, bN, ay: int, bO: int) -> list:
-  cZ = t(f(ay, 0), 0, 1 << 30)
-  bZ = f(bO, aP)
-  if bZ <= 0 or bZ > aP:
-   bZ = aP
-  if bN is None:
+  a.status = ai
+  return {"resolved": True, "axis": ax, "level": A}
+ def bI(self, key: str) -> None:
+  self.bH[key] = u32(0)
+ def aP(self, key: str) -> int:
+  return g(self.bH.get(key), 0) - 1
+ def cR(self, bV, aJ: int, bW: int) -> list:
+  di = r(g(aJ, 0), 0, 1 << 30)
+  cj = g(bW, aY)
+  if cj <= 0 or cj > aY:
+   cj = aY
+  if bV is None:
    return []
-  aR = []
-  bG = len(bN)
-  i = bG - 1 - cZ
-  while i >= 0 and len(aR) < bZ:
-   a = self.W.get(u32(int(bN[i])))
+  ba = []
+  bO = len(bV)
+  i = bO - 1 - di
+  while i >= 0 and len(ba) < cj:
+   a = self.ab.get(u32(int(bV[i])))
    if a is not None:
-    aR.append(self.aQ(a))
+    ba.append(self.aZ(a))
    i -= 1
-  return aR
- @gl.public.write.payable
- def verify_skill(self, e: str, g: str) -> str:
-  K = gl.message.sender_address
-  value = f(gl.message.value, 0)
-  if self.bf:
-   return self.ai(K, value, "contract is paused")
-  aN = bp(e)
-  if aN:
-   return self.ai(K, value, aN)
-  aN = bS(g)
-  if aN:
-   return self.ai(K, value, aN)
-  aL = int(self.aL)
-  if value < aL:
-   return self.ai(K, value, "fee is " + str(aL) + " and " + str(value) + " was sent")
-  aM = self.ci()
-  P = int(self.P)
-  cU = f(self.aB.get(K), 0)
-  if P > 0 and cU > 0 and aM > 0:
-   cr = aM - cU
-   if 0 <= cr < P:
-    return self.ai(K, value, "rate limited, " + str(P - cr) + "s remaining")
-  key = self.aC(e, g)
-  cs = self.aG(key)
-  if cs >= 0:
-   return self.ai(
-   K, value,
-   "verification " + str(cs) + " for this username and skill is already in flight",
-   )
-  if int(self.aK) >= (1 << 32) - 1:
-   return self.ai(K, value, "verification id space is exhausted")
-  A = az(l(e), k(g))
-  c = int(self.aK)
-  self.aK = u32(c + 1)
-  a = self.W.get_or_insert_default(u32(c))
-  a.c = u32(c)
-  a.e = l(e)
-  a.ax = v(e).strip()[:O]
-  a.g = k(g)
-  a.aV = bR(g)
-  a.status = aI
-  a.z = ""
-  a.r = u32(0)
-  a.n = u128(0)
-  a.M = u32(0)
-  a.H = ""
-  a.aA = "[]"
-  a.p = u64(0)
-  a.bu = K
-  a.ad = u64(t(aM, 0, (1 << 64) - 1))
-  a.u = u64(int(self.u))
-  a.cf = u128(t(aL, 0, (1 << 128) - 1))
-  a.be = u128(t(aL, 0, (1 << 128) - 1))
-  a.bv = bt
-  a.G = u32(0)
-  a.ap = False
-  a.Z = False
-  a.w = ""
-  a.V = u32(0)
-  self.by.append(u32(c))
-  if self.ck(a.e, self.cp, c):
-   self.R = u32(self.aD(int(self.R)))
-  if self.ck(a.g, self.cg, c):
-   self.N = u32(self.aD(int(self.N)))
-  if self.ck(key, self.cJ, c):
-   self.S = u32(self.aD(int(self.S)))
-  self.E = u32(self.aD(int(self.E)))
-  self.aB[K] = u64(t(aM, 0, (1 << 64) - 1))
-  self.I = u128(t(int(self.I) + aL, 0, (1 << 128) - 1))
-  bU = self.cD(a, A)
-  if bU["resolved"]:
-   self.ae[key] = u32(c)
-   self.D = u32(self.aD(int(self.D)))
-   self.bA(key)
-  else:
-   self.bz[key] = u32(c + 1)
-   self.x = u32(self.aD(int(self.x)))
-  bP = value - aL
-  if bP > 0:
-   self.cH(K, bP)
+  return ba
+ @gl.public.write
+ def register_identity(self, c: str) -> str:
+  E = gl.message.sender_address
+  if self.aT:
+   return json.dumps({"ok": False, "reason": "contract is paused"})
+  af = ay(c)
+  if af:
+   return json.dumps({"ok": False, "reason": af})
+  Z = f(c)
+  ct = self.J(Z)
+  if ct != "":
+   if ct == D(str(E)):
+    return json.dumps({
+    "ok": True, "github_username": Z, "identity_owner": ct,
+    "already_registered": True,
+    "registered_at": g(self.aq.get(Z), 0),
+    })
+   return json.dumps({
+   "ok": False, "github_username": Z, "identity_owner": ct,
+   "reason": Z + " is already registered to " + ct
+   + " and a registration can never be moved",
+   })
+  self.bQ[Z] = E
+  self.aq[Z] = u64(r(self.cb(), 0, (1 << 64) - 1))
+  self.P = u32(self.aA(int(self.P)))
   return json.dumps({
   "ok": True,
-  "verification_id": c,
+  "github_username": Z,
+  "identity_owner": D(str(E)),
+  "already_registered": False,
+  "registered_at": g(self.aq.get(Z), 0),
+  })
+ @gl.public.write.payable
+ def verify_skill(self, c: str, j: str) -> str:
+  E = gl.message.sender_address
+  value = g(gl.message.value, 0)
+  if self.aT:
+   return self.ap(E, value, "contract is paused")
+  af = ay(c)
+  if af:
+   return self.ap(E, value, af)
+  af = ca(j)
+  if af:
+   return self.ap(E, value, af)
+  aV = int(self.aV)
+  if value < aV:
+   return self.ap(E, value, "fee is " + str(aV) + " and " + str(value) + " was sent")
+  aW = self.cb()
+  T = int(self.T)
+  dd = g(self.aM.get(E), 0)
+  if T > 0 and dd > 0 and aW > 0:
+   cA = aW - dd
+   if 0 <= cA < T:
+    return self.ap(E, value, "rate limited, " + str(T - cA) + "s remaining")
+  key = self.aN(c, j)
+  cB = self.aP(key)
+  if cB >= 0:
+   return self.ap(
+   E, value,
+   "verification " + str(cB) + " for this username and skill is already in flight",
+   )
+  if int(self.aU) >= (1 << 32) - 1:
+   return self.ap(E, value, "verification id space is exhausted")
+  B = aK(f(c), l(j))
+  e = int(self.aU)
+  self.aU = u32(e + 1)
+  a = self.ab.get_or_insert_default(u32(e))
+  a.e = u32(e)
+  a.c = f(c)
+  a.aI = v(c).strip()[:S]
+  a.j = l(j)
+  a.bf = bZ(j)
+  a.status = aR
+  a.A = ""
+  a.t = u32(0)
+  a.o = u128(0)
+  a.Q = u32(0)
+  a.L = ""
+  a.aL = "[]"
+  a.p = u64(0)
+  a.bC = E
+  a.ak = u64(r(aW, 0, (1 << 64) - 1))
+  a.u = u64(int(self.u))
+  a.cp = u128(r(aV, 0, (1 << 128) - 1))
+  a.bo = u128(r(aV, 0, (1 << 128) - 1))
+  a.bD = bB
+  a.K = u32(0)
+  a.az = False
+  a.ae = False
+  a.w = ""
+  a.aa = u32(0)
+  self.bG.append(u32(e))
+  if self.cs(a.c, self.cy, e):
+   self.V = u32(self.aA(int(self.V)))
+  if self.cs(a.j, self.cq, e):
+   self.R = u32(self.aA(int(self.R)))
+  if self.cs(key, self.cS, e):
+   self.W = u32(self.aA(int(self.W)))
+  self.H = u32(self.aA(int(self.H)))
+  self.aM[E] = u64(r(aW, 0, (1 << 64) - 1))
+  self.M = u128(r(int(self.M) + aV, 0, (1 << 128) - 1))
+  cc = self.cM(a, B)
+  if cc["resolved"]:
+   self.al[key] = u32(e)
+   self.G = u32(self.aA(int(self.G)))
+   self.bI(key)
+  else:
+   self.bH[key] = u32(e + 1)
+   self.z = u32(self.aA(int(self.z)))
+  bX = value - aV
+  if bX > 0:
+   self.cQ(E, bX)
+  return json.dumps({
+  "ok": True,
+  "verification_id": e,
   "status": str(a.status),
-  "level": str(a.z),
-  "repo_count": int(a.r),
-  "total_bytes": str(int(a.n)),
-  "top_repos": bW(str(a.aA)),
-  "content_hash": str(a.H),
-  "user_found": bool(a.ap),
+  "level": str(a.A),
+  "repo_count": int(a.t),
+  "total_bytes": str(int(a.o)),
+  "top_repos": ce(str(a.aL)),
+  "content_hash": str(a.L),
+  "user_found": bool(a.az),
   "reason": str(a.w),
-  "change_returned": str(bP if bP > 0 else 0),
+  "change_returned": str(bX if bX > 0 else 0),
   })
  @gl.public.write
- def resolve_pending(self, c: int) -> str:
-  a = self.cy(c)
+ def resolve_pending(self, e: int) -> str:
+  a = self.cH(e)
   if a is None:
    return json.dumps({"ok": False, "reason": "unknown verification_id"})
-  if not self.cj(a):
+  if not self.cr(a):
    return json.dumps({
    "ok": False,
    "reason": "verification is " + str(a.status) + " and can never change",
    "status": str(a.status),
-   "level": str(a.z),
+   "level": str(a.A),
    })
-  if int(a.G) >= ac:
+  if int(a.K) >= aj:
    return json.dumps({"ok": False, "reason": "attempt ceiling reached, settle it stalled"})
-  key = self.aC(str(a.e), str(a.g))
-  A = az(str(a.e), str(a.g))
-  bU = self.cD(a, A)
-  if bU["resolved"]:
-   self.ae[key] = u32(int(a.c))
-   self.D = u32(self.aD(int(self.D)))
-   self.x = u32(t(int(self.x) - 1, 0, (1 << 32) - 1))
-   self.bA(key)
+  key = self.aN(str(a.c), str(a.j))
+  B = aK(str(a.c), str(a.j))
+  cc = self.cM(a, B)
+  if cc["resolved"]:
+   self.al[key] = u32(int(a.e))
+   self.G = u32(self.aA(int(self.G)))
+   self.z = u32(r(int(self.z) - 1, 0, (1 << 32) - 1))
+   self.bI(key)
   return json.dumps({
   "ok": True,
-  "verification_id": int(a.c),
+  "verification_id": int(a.e),
   "status": str(a.status),
-  "level": str(a.z),
-  "repo_count": int(a.r),
-  "total_bytes": str(int(a.n)),
-  "content_hash": str(a.H),
-  "attempts": int(a.G),
+  "level": str(a.A),
+  "repo_count": int(a.t),
+  "total_bytes": str(int(a.o)),
+  "content_hash": str(a.L),
+  "attempts": int(a.K),
   "reason": str(a.w),
   })
  @gl.public.write
- def settle_stalled(self, c: int) -> str:
-  a = self.cy(c)
+ def settle_stalled(self, e: int) -> str:
+  a = self.cH(e)
   if a is None:
    return json.dumps({"ok": False, "reason": "unknown verification_id"})
-  if not self.cj(a):
+  if not self.cr(a):
    return json.dumps({
    "ok": False,
    "reason": "verification is already " + str(a.status),
    "status": str(a.status),
    })
-  aM = self.ci()
-  cV = int(a.ad) + int(a.u)
-  if aM < cV:
+  aW = self.cb()
+  de = int(a.ak) + int(a.u)
+  if aW < de:
    return json.dumps({
    "ok": False,
-   "reason": "resolution window has " + str(cV - aM) + "s left",
-   "settle_stalled_at": cV,
+   "reason": "resolution window has " + str(de - aW) + "s left",
+   "settle_stalled_at": de,
    })
-  key = self.aC(str(a.e), str(a.g))
-  a.status = Q
-  a.z = ""
+  key = self.aN(str(a.c), str(a.j))
+  a.status = U
+  a.A = ""
   a.w = "unresolved after " + str(int(a.u)) + "s"
-  a.H = ""
-  self.X = u32(self.aD(int(self.X)))
-  self.x = u32(t(int(self.x) - 1, 0, (1 << 32) - 1))
-  self.bA(key)
+  a.L = ""
+  self.ac = u32(self.aA(int(self.ac)))
+  self.z = u32(r(int(self.z) - 1, 0, (1 << 32) - 1))
+  self.bI(key)
   return json.dumps({
   "ok": True,
-  "verification_id": int(a.c),
-  "status": Q,
+  "verification_id": int(a.e),
+  "status": U,
   "reason": str(a.w),
   })
  @gl.public.view
- def get_verification(self, c: int) -> str:
-  a = self.cy(c)
+ def get_verification(self, e: int) -> str:
+  a = self.cH(e)
   if a is None:
-   return json.dumps({"found": False, "verification_id": f(c, -1)})
-  au = self.aQ(a)
-  au["found"] = True
-  return json.dumps(au)
+   return json.dumps({"found": False, "verification_id": g(e, -1)})
+  aF = self.aZ(a)
+  aF["found"] = True
+  return json.dumps(aF)
  @gl.public.view
- def get_verifications_by_user(self, e: str, ay: int, bO: int) -> str:
-  bT = l(e)
-  bN = self.cp.get(bT)
-  aR = self.cI(bN, ay, bO)
+ def get_verifications_by_user(self, c: str, aJ: int, bW: int) -> str:
+  Z = f(c)
+  bV = self.cy.get(Z)
+  ba = self.cR(bV, aJ, bW)
   return json.dumps({
-  "github_username": bT,
-  "total": bV(bN),
-  "returned": len(aR),
-  "offset": t(f(ay, 0), 0, 1 << 30),
-  "verifications": aR,
+  "github_username": Z,
+  "total": cd(bV),
+  "returned": len(ba),
+  "offset": r(g(aJ, 0), 0, 1 << 30),
+  "verifications": ba,
   })
  @gl.public.view
- def get_verifications_by_skill(self, g: str, ay: int, bO: int) -> str:
-  ba = k(g)
-  bN = self.cg.get(ba)
-  aR = self.cI(bN, ay, bO)
+ def get_verifications_by_skill(self, j: str, aJ: int, bW: int) -> str:
+  bk = l(j)
+  bV = self.cq.get(bk)
+  ba = self.cR(bV, aJ, bW)
   return json.dumps({
-  "skill": ba,
-  "total": bV(bN),
-  "returned": len(aR),
-  "offset": t(f(ay, 0), 0, 1 << 30),
-  "verifications": aR,
+  "skill": bk,
+  "total": cd(bV),
+  "returned": len(ba),
+  "offset": r(g(aJ, 0), 0, 1 << 30),
+  "verifications": ba,
   })
  @gl.public.view
- def is_verified(self, e: str, g: str, aE: str) -> bool:
-  cl = bl(aE)
-  if cl < 0:
+ def is_verified(self, c: str, j: str, ag: str) -> bool:
+  cu = bu(ag)
+  if cu < 0:
    return False
-  a = self.F(e, g)
+  a = self.I(c, j)
   if a is None:
    return False
-  if not self.bh(a):
+  if not self.bq(a):
    return False
-  return bl(str(a.z)) >= cl
+  return bu(str(a.A)) >= cu
  @gl.public.view
- def require_verified(self, e: str, g: str, aE: str) -> str:
-  cl = bl(aE)
-  if cl < 0:
-   raise gl.vm.UserError("min_level must be one of " + ", ".join(bC))
-  a = self.F(e, g)
+ def require_verified(self, c: str, j: str, ag: str) -> str:
+  cu = bu(ag)
+  if cu < 0:
+   raise gl.vm.UserError("min_level must be one of " + ", ".join(bK))
+  a = self.I(c, j)
   if a is None:
    raise gl.vm.UserError(
-   "no resolved verification for " + l(e)
-   + " / " + k(g),
+   "no resolved verification for " + f(c)
+   + " / " + l(j),
    )
-  if not self.bh(a):
-   raise gl.vm.UserError("verification " + str(int(a.c)) + " is stale")
-  di = bl(str(a.z))
-  if di < cl:
+  if not self.bq(a):
+   raise gl.vm.UserError("verification " + str(int(a.e)) + " is stale")
+  dr = bu(str(a.A))
+  if dr < cu:
    raise gl.vm.UserError(
-   l(e) + " is " + str(a.z)
-   + " in " + k(g) + ", " + str(aE) + " required",
+   f(c) + " is " + str(a.A)
+   + " in " + l(j) + ", " + str(ag) + " required",
    )
-  au = self.aQ(a)
-  au["ok"] = True
-  return json.dumps(au)
+  aF = self.aZ(a)
+  aF["ok"] = True
+  return json.dumps(aF)
+ @gl.public.view
+ def get_identity(self, c: str) -> str:
+  return json.dumps(self.cg(f(c)))
+ @gl.public.view
+ def owns_identity(self, c: str, bJ: str) -> bool:
+  O = self.J(f(c))
+  if O == "":
+   return False
+  n = D(bJ)
+  if aE(n):
+   return False
+  return O == n
+ @gl.public.view
+ def is_verified_identity(self, c: str, j: str, ag: str, bJ: str) -> bool:
+  if not self.owns_identity(c, bJ):
+   return False
+  return self.is_verified(c, j, ag)
  @gl.public.view
  def get_stats(self) -> str:
   return json.dumps({
-  "total_verifications": int(self.E),
-  "resolved": int(self.D),
-  "pending": int(self.x),
-  "stalled": int(self.X),
-  "users_verified": int(self.R),
-  "skills_verified": int(self.N),
-  "pairs_verified": int(self.S),
-  "fees_collected": str(int(self.I)),
-  "fees_withdrawn": str(int(self.J)),
-  "total_refunded": str(int(self.T)),
-  "next_id": int(self.aK),
+  "total_verifications": int(self.H),
+  "resolved": int(self.G),
+  "pending": int(self.z),
+  "stalled": int(self.ac),
+  "identities_registered": int(self.P),
+  "users_verified": int(self.V),
+  "skills_verified": int(self.R),
+  "pairs_verified": int(self.W),
+  "fees_collected": str(int(self.M)),
+  "fees_withdrawn": str(int(self.N)),
+  "total_refunded": str(int(self.X)),
+  "next_id": int(self.aU),
   })
  @gl.public.view
  def get_config(self) -> str:
   return json.dumps({
-  "owner": str(self.bI),
-  "paused": bool(self.bf),
-  "fee": str(int(self.aL)),
-  "max_fee": str(bj),
-  "cooldown_seconds": int(self.P),
+  "owner": str(self.O),
+  "paused": bool(self.aT),
+  "fee": str(int(self.aV)),
+  "max_fee": str(bs),
+  "cooldown_seconds": int(self.T),
   "resolve_window_seconds": int(self.u),
-  "freshness_window_seconds": int(self.B),
-  "levels": list(bC),
-  "axis_values": list(bq),
-  "statuses": [aI, ab, Q],
+  "freshness_window_seconds": int(self.C),
+  "levels": list(bK),
+  "axis_values": list(by),
+  "identity_binding": "register_identity",
+  "statuses": [aR, ai, U],
   "thresholds": {
-  "EXPERT": {"repos": aW, "bytes": aX},
-  "PROFICIENT": {"repos": ar, "bytes": at},
-  "BEGINNER": {"repos": aH, "bytes": 0},
+  "EXPERT": {"repos": bg, "bytes": bh},
+  "PROFICIENT": {"repos": aC, "bytes": aD},
+  "BEGINNER": {"repos": aQ, "bytes": 0},
   },
-  "bytes_basis": bt,
-  "max_username_length": O,
-  "max_skill_length": aj,
-  "max_page": aP,
-  "repos_scanned_per_verification": br,
+  "bytes_basis": bB,
+  "max_username_length": S,
+  "max_skill_length": ar,
+  "max_page": aY,
+  "repos_scanned_per_verification": bz,
   "forks_counted": False,
-  "source": aT,
+  "source": bd,
   })
  @gl.public.view
- def get_latest(self, e: str, g: str) -> str:
-  a = self.F(e, g)
-  bB = l(e)
-  bi = k(g)
+ def get_latest(self, c: str, j: str) -> str:
+  a = self.I(c, j)
+  bb = f(c)
+  br = l(j)
   if a is None:
    return json.dumps({
    "found": False,
-   "github_username": bB,
-   "skill": bi,
-   "pending_id": self.aG(bB + "\x1f" + bi),
+   "github_username": bb,
+   "skill": br,
+   "identity_owner": self.J(bb),
+   "pending_id": self.aP(bb + "\x1f" + br),
    })
-  au = self.aQ(a)
-  au["found"] = True
-  au["fresh"] = self.bh(a)
-  au["pending_id"] = self.aG(bB + "\x1f" + bi)
-  return json.dumps(au)
- def F(self, e: str, g: str):
-  bK = f(self.ae.get(self.aC(e, g)), 0)
-  if bK <= 0:
+  aF = self.aZ(a)
+  aF["found"] = True
+  aF["fresh"] = self.bq(a)
+  aF["pending_id"] = self.aP(bb + "\x1f" + br)
+  return json.dumps(aF)
+ def I(self, c: str, j: str):
+  bS = g(self.al.get(self.aN(c, j)), 0)
+  if bS <= 0:
    return None
-  return self.W.get(u32(bK))
- def bh(self, a) -> bool:
-  cE = int(self.B)
-  if cE <= 0:
+  return self.ab.get(u32(bS))
+ def bq(self, a) -> bool:
+  cN = int(self.C)
+  if cN <= 0:
    return True
   p = int(a.p)
   if p <= 0:
    return False
-  aM = self.ci()
-  if aM <= p:
+  aW = self.cb()
+  if aW <= p:
    return True
-  return (aM - p) <= cE
- def C(self) -> None:
-  if gl.message.sender_address != self.bI:
+  return (aW - p) <= cN
+ def F(self) -> None:
+  if gl.message.sender_address != self.O:
    raise gl.vm.UserError("owner only")
  @gl.public.write
- def set_fee(self, cK: int) -> str:
-  self.C()
-  o = f(cK, -1)
-  if o < 0 or o > bj:
-   raise gl.vm.UserError("fee must be between 0 and " + str(bj))
-  self.aL = u128(o)
-  return json.dumps({"ok": True, "fee": str(o)})
+ def set_fee(self, cT: int) -> str:
+  self.F()
+  n = g(cT, -1)
+  if n < 0 or n > bs:
+   raise gl.vm.UserError("fee must be between 0 and " + str(bs))
+  self.aV = u128(n)
+  return json.dumps({"ok": True, "fee": str(n)})
  @gl.public.write
- def set_cooldown(self, aO: int) -> str:
-  self.C()
-  o = f(aO, -1)
-  if o < 0 or o > aY:
-   raise gl.vm.UserError("cooldown must be between 0 and " + str(aY))
-  self.P = u64(o)
-  return json.dumps({"ok": True, "cooldown_seconds": o})
+ def set_cooldown(self, aX: int) -> str:
+  self.F()
+  n = g(aX, -1)
+  if n < 0 or n > bi:
+   raise gl.vm.UserError("cooldown must be between 0 and " + str(bi))
+  self.T = u64(n)
+  return json.dumps({"ok": True, "cooldown_seconds": n})
  @gl.public.write
- def set_resolve_window(self, aO: int) -> str:
-  self.C()
-  o = f(aO, -1)
-  if o < ak or o > al:
+ def set_resolve_window(self, aX: int) -> str:
+  self.F()
+  n = g(aX, -1)
+  if n < at or n > au:
    raise gl.vm.UserError(
-   "resolve window must be between " + str(ak) + " and " + str(al),
+   "resolve window must be between " + str(at) + " and " + str(au),
    )
-  self.u = u64(o)
-  return json.dumps({"ok": True, "resolve_window_seconds": o})
+  self.u = u64(n)
+  return json.dumps({"ok": True, "resolve_window_seconds": n})
  @gl.public.write
- def set_freshness_window(self, aO: int) -> str:
-  self.C()
-  o = f(aO, -1)
-  if o < 0 or o > aS:
-   raise gl.vm.UserError("freshness window must be between 0 and " + str(aS))
-  self.B = u64(o)
-  return json.dumps({"ok": True, "freshness_window_seconds": o})
+ def set_freshness_window(self, aX: int) -> str:
+  self.F()
+  n = g(aX, -1)
+  if n < 0 or n > bc:
+   raise gl.vm.UserError("freshness window must be between 0 and " + str(bc))
+  self.C = u64(n)
+  return json.dumps({"ok": True, "freshness_window_seconds": n})
  @gl.public.write
  def pause(self) -> str:
-  self.C()
-  self.bf = True
+  self.F()
+  self.aT = True
   return json.dumps({"ok": True, "paused": True})
  @gl.public.write
  def unpause(self) -> str:
-  self.C()
-  self.bf = False
+  self.F()
+  self.aT = False
   return json.dumps({"ok": True, "paused": False})
  @gl.public.write
- def transfer_ownership(self, cF: str) -> str:
-  self.C()
-  bQ = v(cF).strip()
-  if len(bQ) != 42 or not bQ.lower().startswith("0x"):
+ def transfer_ownership(self, cO: str) -> str:
+  self.F()
+  bY = v(cO).strip()
+  if len(bY) != 42 or not bY.lower().startswith("0x"):
    raise gl.vm.UserError("new_owner must be a 0x-prefixed 20-byte address")
-  if bQ.lower() == ca:
+  if bY.lower() == ck:
    raise gl.vm.UserError("refusing to transfer ownership to the zero address")
   try:
-   bc = Address(bQ)
+   bm = Address(bY)
   except Exception:
    raise gl.vm.UserError("new_owner is not a valid address")
-  self.bI = bc
-  return json.dumps({"ok": True, "owner": str(bc)})
+  self.O = bm
+  return json.dumps({"ok": True, "owner": str(bm)})
  @gl.public.write
- def withdraw_fees(self, bJ: int) -> str:
-  self.C()
-  cz = t(int(self.I) - int(self.J), 0, (1 << 128) - 1)
-  o = f(bJ, 0)
-  if o <= 0:
-   o = cz
-  if o > cz:
-   raise gl.vm.UserError("only " + str(cz) + " in fees is withdrawable")
-  if o <= 0:
+ def withdraw_fees(self, bR: int) -> str:
+  self.F()
+  cI = r(int(self.M) - int(self.N), 0, (1 << 128) - 1)
+  n = g(bR, 0)
+  if n <= 0:
+   n = cI
+  if n > cI:
+   raise gl.vm.UserError("only " + str(cI) + " in fees is withdrawable")
+  if n <= 0:
    raise gl.vm.UserError("no fees to withdraw")
-  self.J = u128(int(self.J) + o)
-  self.cH(self.bI, o)
-  return json.dumps({"ok": True, "withdrawn": str(o), "remaining": str(cz - o)})
+  self.N = u128(int(self.N) + n)
+  self.cQ(self.O, n)
+  return json.dumps({"ok": True, "withdrawn": str(n), "remaining": str(cI - n)})

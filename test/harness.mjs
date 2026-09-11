@@ -20,7 +20,32 @@ import { studionet, testnetBradbury } from "genlayer-js/chains";
 import { transactionsStatusNumberToName } from "genlayer-js/types";
 import { readFileSync } from "node:fs";
 
-export const CHAINS = { studionet, bradbury: testnetBradbury };
+/**
+ * Studio Dev (chain 61997) — where SkillVerify actually runs.
+ *
+ * genlayer-js ships no definition for it, and it is NOT reachable by pointing
+ * the studionet definition at a different URL and hoping: the chain id is part
+ * of every signature, so a mismatched one produces transactions the node
+ * rejects for reasons that read as anything but a wrong id. Both halves are
+ * overridden here and nothing else is, because the consensus contract really is
+ * the same address on both — confirmed against sim_getConsensusContract, not
+ * assumed:
+ *
+ *   curl -s https://studio-dev.genlayer.com/api -d \
+ *     '{"jsonrpc":"2.0","method":"sim_getConsensusContract","params":["ConsensusMain"],"id":1}'
+ *   -> 0xb7278A61aa25c888815aFC32Ad3cC52fF24fE575
+ */
+export const studiodev = {
+  ...studionet,
+  id: 61997,
+  name: "Genlayer Studio Dev",
+  rpcUrls: { default: { http: ["https://studio-dev.genlayer.com/api"] } },
+  blockExplorers: {
+    default: { name: "GenLayer Explorer", url: "https://explorer-studio-dev.genlayer.com" },
+  },
+};
+
+export const CHAINS = { studionet, studiodev, bradbury: testnetBradbury };
 
 /** States that genuinely end a transaction — see deploy.mjs for why not DECIDED_STATES. */
 export const TERMINAL_STATES = ["ACCEPTED", "FINALIZED", "UNDETERMINED", "CANCELED"];
@@ -158,17 +183,28 @@ export function failureLine(stderr) {
 /** Studionet-only faucet. No-op elsewhere. */
 export async function fundOnStudio(chain, address, wei) {
   if (!chain.isStudio) return false;
-  const res = await fetch(chain.rpcUrls.default.http[0], {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({
-      jsonrpc: "2.0",
-      id: 1,
-      method: "sim_fundAccount",
-      params: [address, Number(wei)],
-    }),
-  });
-  const json = await res.json();
+  const call = async (amount) => {
+    const res = await fetch(chain.rpcUrls.default.http[0], {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 1,
+        method: "sim_fundAccount",
+        params: [address, amount],
+      }),
+    });
+    return res.json();
+  };
+  // THE AMOUNT MUST NOT BE A JS Number. 400 GEN is 4e20, which JSON.stringify
+  // writes as `4e+20`, and studio-dev answers "amount must be a positive
+  // integer" — after which the deploy fails for want of a deposit, which looks
+  // like a problem with the contract and is not. A hex string is exact at any
+  // size. The Number form is kept only as a fallback for an older node that
+  // does not understand the hex one.
+  const hex = "0x" + BigInt(wei).toString(16);
+  let json = await call(hex);
+  if (!json?.result) json = await call(Number(wei));
   return Boolean(json?.result);
 }
 

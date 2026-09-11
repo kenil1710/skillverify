@@ -45,6 +45,15 @@ def _normalize_username(value) -> str:
  return _as_text(value).strip().lower()[:MAX_USERNAME]
 def _normalize_skill(value) -> str:
  return " ".join(_as_text(value).split()).lower()[:MAX_SKILL]
+def _normalize_address(value) -> str:
+ return _as_text(value).strip().lower()
+def _is_zero_address(value) -> bool:
+ text = _normalize_address(value)
+ if text == "" or text == "none":
+  return True
+ if text.startswith("0x"):
+  text = text[2:]
+ return text.strip("0") == ""
 def _rank(level) -> int:
  text = _as_text(level)
  for i in range(len(LEVELS)):
@@ -125,22 +134,72 @@ class SkillConsumer(gl.Contract):
    _normalize_username(github_username), _normalize_skill(skill),
    )
   except Exception:
-   return {"found": False, "level": "", "rank": -1, "reason": "oracle unreachable"}
+   return {"found": False, "level": "", "rank": -1, "identity_owner": "",
+   "oracle_down": True, "reason": "oracle unreachable"}
   document = _as_json(raw)
+  owner = _normalize_address(document.get("identity_owner"))
+  if _is_zero_address(owner):
+   owner = ""
   if not bool(document.get("found", False)):
-   return {"found": False, "level": "", "rank": -1, "reason": "no resolved verification"}
+   return {"found": False, "level": "", "rank": -1, "identity_owner": owner,
+   "reason": "no resolved verification"}
   if not bool(document.get("fresh", True)):
-   return {"found": False, "level": _as_text(document.get("level")), "rank": -1, "reason": "verification is stale"}
+   return {"found": False, "level": _as_text(document.get("level")), "rank": -1,
+   "identity_owner": owner, "reason": "verification is stale"}
   level = _as_text(document.get("level"))
   return {
   "found": True,
   "level": level,
   "rank": _rank(level),
+  "identity_owner": owner,
+  "verified_by": _normalize_address(document.get("verified_by")),
   "verification_id": _as_int(document.get("verification_id"), 0),
   "content_hash": _as_text(document.get("content_hash")),
   "repo_count": _as_int(document.get("repo_count"), 0),
   "reason": "",
   }
+ def _claim_problem(self, bounty, user: str, claimant: str, found: dict) -> dict:
+  if bool(found.get("oracle_down", False)):
+   return {
+   "ok": False,
+   "reason": user + " cannot be checked: " + _as_text(found.get("reason")),
+   "claimant": claimant,
+   }
+  owner = _as_text(found.get("identity_owner"))
+  if owner == "":
+   return {
+   "ok": False,
+   "reason": user + " is not bound to any wallet: call register_identity(\""
+   + user + "\") on the oracle from the wallet that owns it, then claim",
+   "identity_owner": "",
+   "claimant": claimant,
+   }
+  if owner != claimant or _is_zero_address(claimant):
+   return {
+   "ok": False,
+   "reason": user + " is registered to " + owner
+   + " and only that wallet may claim against it",
+   "identity_owner": owner,
+   "claimant": claimant,
+   }
+  if not bool(found.get("found", False)):
+   return {
+   "ok": False,
+   "reason": user + " has no usable verification for " + str(bounty.skill)
+   + ": " + _as_text(found.get("reason")),
+   "required": str(bounty.min_level),
+   }
+  want = _rank(str(bounty.min_level))
+  have = _as_int(found.get("rank"), -1)
+  if have < want:
+   return {
+   "ok": False,
+   "reason": user + " is " + _as_text(found.get("level")) + ", "
+   + str(bounty.min_level) + " required",
+   "level": _as_text(found.get("level")),
+   "required": str(bounty.min_level),
+   }
+  return {}
  def _find(self, bounty_id: int):
   return self.bounties.get(u32(_clamp(_as_int(bounty_id, -1), 0, (1 << 32) - 1)))
  def _mutable(self, bounty) -> bool:
@@ -226,6 +285,8 @@ class SkillConsumer(gl.Contract):
   "rank": int(found["rank"]),
   "verification_id": int(found.get("verification_id", 0)),
   "content_hash": str(found.get("content_hash", "")),
+  "identity_owner": str(found.get("identity_owner", "")),
+  "verified_by": str(found.get("verified_by", "")),
   "reason": str(found.get("reason", "")),
   "oracle": str(self.oracle),
   })
@@ -296,23 +357,11 @@ class SkillConsumer(gl.Contract):
   user = _normalize_username(github_username)
   if user == "":
    return json.dumps({"ok": False, "reason": "github_username is empty"})
+  claimant = _normalize_address(str(gl.message.sender_address))
   found = self._level_of(user, str(bounty.skill))
-  if not found["found"]:
-   return json.dumps({
-   "ok": False,
-   "reason": user + " has no usable verification for " + str(bounty.skill)
-   + ": " + str(found["reason"]),
-   "required": str(bounty.min_level),
-   })
-  want = _rank(str(bounty.min_level))
-  have = int(found["rank"])
-  if have < want:
-   return json.dumps({
-   "ok": False,
-   "reason": user + " is " + str(found["level"]) + ", " + str(bounty.min_level) + " required",
-   "level": str(found["level"]),
-   "required": str(bounty.min_level),
-   })
+  problem = self._claim_problem(bounty, user, claimant, found)
+  if problem:
+   return json.dumps(problem)
   reward = int(bounty.reward)
   bounty.status = STATUS_CLAIMED
   bounty.claimant = gl.message.sender_address
@@ -330,6 +379,7 @@ class SkillConsumer(gl.Contract):
   "paid": str(reward),
   "to": str(bounty.claimant),
   "github_username": user,
+  "identity_owner": claimant,
   "level": str(found["level"]),
   "verification_id": int(bounty.verification_id),
   "content_hash": str(bounty.content_hash),
@@ -363,6 +413,34 @@ class SkillConsumer(gl.Contract):
   row["found"] = True
   return json.dumps(row)
  @gl.public.view
+ def can_claim(self, bounty_id: int, github_username: str, claimant: str) -> str:
+  bounty = self._find(bounty_id)
+  if bounty is None:
+   return json.dumps({"ok": False, "reason": "unknown bounty_id"})
+  if not self._mutable(bounty):
+   return json.dumps({
+   "ok": False,
+   "reason": "bounty is " + str(bounty.status) + " and can never change",
+   "status": str(bounty.status),
+   })
+  user = _normalize_username(github_username)
+  if user == "":
+   return json.dumps({"ok": False, "reason": "github_username is empty"})
+  who = _normalize_address(claimant)
+  found = self._level_of(user, str(bounty.skill))
+  problem = self._claim_problem(bounty, user, who, found)
+  if problem:
+   return json.dumps(problem)
+  return json.dumps({
+  "ok": True,
+  "bounty_id": int(bounty.bounty_id),
+  "github_username": user,
+  "identity_owner": who,
+  "level": _as_text(found.get("level")),
+  "required": str(bounty.min_level),
+  "reward": str(int(bounty.reward)),
+  })
+ @gl.public.view
  def get_bounties(self, offset: int, limit: int) -> str:
   rows = self._page(self.bounty_ids, offset, limit)
   return json.dumps({"total": len(self.bounty_ids), "returned": len(rows), "bounties": rows})
@@ -379,6 +457,7 @@ class SkillConsumer(gl.Contract):
   "oracle": str(self.oracle),
   "levels": list(LEVELS),
   "statuses": [STATUS_OPEN, STATUS_CLAIMED, STATUS_WITHDRAWN],
+  "claims_are_identity_bound": True,
   "min_reward": str(MIN_REWARD),
   "max_reward": str(MAX_REWARD),
   "max_bounties": MAX_BOUNTIES,

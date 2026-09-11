@@ -10,6 +10,7 @@ import json
 #
 #   post_bounty("Python", "PROFICIENT")   funds a reward, payable
 #   claim_bounty(id, "gvanrossum")        pays out only if the oracle agrees
+#                                         AND the caller IS gvanrossum's wallet
 #
 # The division of labour is the whole point:
 #
@@ -23,6 +24,19 @@ import json
 #
 # The reusable pieces are `require_skill`, `check_skill` and `_level_of`.
 # Everything else is the example wrapped around them.
+#
+# A LEVEL IS NOT A BEARER TOKEN, which is the second lesson here and the one a
+# reviewer found. `gvanrossum is EXPERT in Python` is a public fact: it says
+# nothing about who may spend it, and an earlier version of claim_bounty paid
+# whichever wallet quoted the username first. Any passer-by could read a
+# verification off the explorer and collect somebody else's bounty.
+#
+# The fix is a binding, not a better level. SkillVerify.register_identity binds
+# a username to ONE wallet, permanently, and every verification document now
+# carries `identity_owner`; claim_bounty pays that wallet and nobody else. What
+# it does NOT do is trust `verified_by` - the wallet that paid for the
+# verification - because a thief can become that by spending a fee of their own.
+# See SkillVerify rule 6 and NOTES.md 12.
 #
 # THE LESSON THIS FILE EXISTS TO ENCODE, and it cost a live bug in an earlier
 # project to learn: A PAYABLE METHOD IS ONLY AS SAFE AS EVERY FUNCTION IT CALLS,
@@ -92,6 +106,30 @@ def _normalize_username(value) -> str:
 
 def _normalize_skill(value) -> str:
 	return " ".join(_as_text(value).split()).lower()[:MAX_SKILL]
+
+
+def _normalize_address(value) -> str:
+	"""One spelling for a wallet. Address renders checksummed on chain and
+	lowercase elsewhere, and an identity gate that compared the two spellings
+	directly would refuse the very wallet it exists to admit. SkillVerify keeps
+	an identical helper; both sides of the boundary must agree on this or the
+	binding is decorative."""
+	return _as_text(value).strip().lower()
+
+
+def _is_zero_address(value) -> bool:
+	"""True for "" and for 0x000…0 - the same fact in two spellings.
+
+	The oracle reports an unregistered username as "", but a differently
+	written oracle could report the zero address, and a `!=` comparison against
+	a zero-address claimant would then hand the bounty to nobody in particular.
+	Both read as absent here, and absent always means refuse."""
+	text = _normalize_address(value)
+	if text == "" or text == "none":
+		return True
+	if text.startswith("0x"):
+		text = text[2:]
+	return text.strip("0") == ""
 
 
 def _rank(level) -> int:
@@ -223,22 +261,99 @@ class SkillConsumer(gl.Contract):
 				_normalize_username(github_username), _normalize_skill(skill),
 			)
 		except Exception:
-			return {"found": False, "level": "", "rank": -1, "reason": "oracle unreachable"}
+			# identity_owner is "" here, and claim_bounty refuses on that. An
+			# oracle this contract cannot reach must never be a reason to pay.
+			return {"found": False, "level": "", "rank": -1, "identity_owner": "",
+				"oracle_down": True, "reason": "oracle unreachable"}
 		document = _as_json(raw)
+		# THE BINDING, read in the SAME call as the level. Two reads would open
+		# a window between "who owns this name" and "what is it worth", and an
+		# oracle that answered the first and failed the second would leave this
+		# contract choosing between two half-answers. `.get()` with "" means an
+		# older oracle - one with no identity binding at all - reads as
+		# unregistered and every claim against it is refused. Fail CLOSED: the
+		# alternative is a silent return to paying whoever asks first.
+		owner = _normalize_address(document.get("identity_owner"))
+		if _is_zero_address(owner):
+			owner = ""
 		if not bool(document.get("found", False)):
-			return {"found": False, "level": "", "rank": -1, "reason": "no resolved verification"}
+			return {"found": False, "level": "", "rank": -1, "identity_owner": owner,
+				"reason": "no resolved verification"}
 		if not bool(document.get("fresh", True)):
-			return {"found": False, "level": _as_text(document.get("level")), "rank": -1, "reason": "verification is stale"}
+			return {"found": False, "level": _as_text(document.get("level")), "rank": -1,
+				"identity_owner": owner, "reason": "verification is stale"}
 		level = _as_text(document.get("level"))
 		return {
 			"found": True,
 			"level": level,
 			"rank": _rank(level),
+			"identity_owner": owner,
+			"verified_by": _normalize_address(document.get("verified_by")),
 			"verification_id": _as_int(document.get("verification_id"), 0),
 			"content_hash": _as_text(document.get("content_hash")),
 			"repo_count": _as_int(document.get("repo_count"), 0),
 			"reason": "",
 		}
+
+	def _claim_problem(self, bounty, user: str, claimant: str, found: dict) -> dict:
+		"""Why this claim cannot be paid, or {} if it can. THE ONE COPY OF THE
+		GATE - claim_bounty acts on it and can_claim reports it, so the dry run
+		can never drift from the transaction it predicts.
+
+		Order matters. Identity is checked BEFORE level because "you are not
+		this developer" is the honest refusal, and because a claim that can
+		never be paid should not be told what it would have needed.
+
+		NEVER RAISES, and every unclear case is a refusal: no binding, a binding
+		that is not this caller, a zero-address caller, an oracle too old to
+		carry the field, an oracle that could not be reached at all."""
+		if bool(found.get("oracle_down", False)):
+			# The identity gate below would refuse this anyway - an unreachable
+			# oracle reports no binding - but "the oracle is down" and "you are
+			# not this developer" are different problems with different fixes,
+			# and the claimant is owed the one they actually have.
+			return {
+				"ok": False,
+				"reason": user + " cannot be checked: " + _as_text(found.get("reason")),
+				"claimant": claimant,
+			}
+		owner = _as_text(found.get("identity_owner"))
+		if owner == "":
+			return {
+				"ok": False,
+				"reason": user + " is not bound to any wallet: call register_identity(\""
+				+ user + "\") on the oracle from the wallet that owns it, then claim",
+				"identity_owner": "",
+				"claimant": claimant,
+			}
+		if owner != claimant or _is_zero_address(claimant):
+			# THE THEFT THIS GATE EXISTS TO STOP. A level is a public fact about
+			# a username; quoting it is not the same as owning it.
+			return {
+				"ok": False,
+				"reason": user + " is registered to " + owner
+				+ " and only that wallet may claim against it",
+				"identity_owner": owner,
+				"claimant": claimant,
+			}
+		if not bool(found.get("found", False)):
+			return {
+				"ok": False,
+				"reason": user + " has no usable verification for " + str(bounty.skill)
+				+ ": " + _as_text(found.get("reason")),
+				"required": str(bounty.min_level),
+			}
+		want = _rank(str(bounty.min_level))
+		have = _as_int(found.get("rank"), -1)
+		if have < want:
+			return {
+				"ok": False,
+				"reason": user + " is " + _as_text(found.get("level")) + ", "
+				+ str(bounty.min_level) + " required",
+				"level": _as_text(found.get("level")),
+				"required": str(bounty.min_level),
+			}
+		return {}
 
 	def _find(self, bounty_id: int):
 		return self.bounties.get(u32(_clamp(_as_int(bounty_id, -1), 0, (1 << 32) - 1)))
@@ -346,6 +461,8 @@ class SkillConsumer(gl.Contract):
 			"rank": int(found["rank"]),
 			"verification_id": int(found.get("verification_id", 0)),
 			"content_hash": str(found.get("content_hash", "")),
+			"identity_owner": str(found.get("identity_owner", "")),
+			"verified_by": str(found.get("verified_by", "")),
 			"reason": str(found.get("reason", "")),
 			"oracle": str(self.oracle),
 		})
@@ -431,7 +548,24 @@ class SkillConsumer(gl.Contract):
 		Not payable - a claim carries no value - so it could revert safely. It
 		still returns {"ok": false} instead, because a caller who learns WHY
 		they were refused can go and get verified, and a bare revert tells them
-		nothing."""
+		nothing.
+
+		TWO GATES, NOT ONE, and the first is the one a reviewer found missing:
+
+		  IDENTITY. The caller must be the wallet registered for this username
+		  on the oracle. Checked FIRST, before the level, because "you are not
+		  this developer" is the honest refusal and there is no point pricing a
+		  claim that can never be paid.
+
+		  LEVEL. What the oracle says the username is worth, against what this
+		  bounty asked for.
+
+		The identity gate reads `identity_owner` out of the SAME document the
+		level comes from - one cross-contract call, no window between the two
+		answers - and refuses on anything unclear: an unregistered username, an
+		oracle too old to have the field, an unreachable oracle. `verified_by`
+		is deliberately NOT accepted as a fallback: it is whoever last paid for
+		a verification, and a thief becomes that by paying for one."""
 		bounty = self._find(bounty_id)
 		if bounty is None:
 			return json.dumps({"ok": False, "reason": "unknown bounty_id"})
@@ -445,23 +579,11 @@ class SkillConsumer(gl.Contract):
 		if user == "":
 			return json.dumps({"ok": False, "reason": "github_username is empty"})
 
+		claimant = _normalize_address(str(gl.message.sender_address))
 		found = self._level_of(user, str(bounty.skill))
-		if not found["found"]:
-			return json.dumps({
-				"ok": False,
-				"reason": user + " has no usable verification for " + str(bounty.skill)
-				+ ": " + str(found["reason"]),
-				"required": str(bounty.min_level),
-			})
-		want = _rank(str(bounty.min_level))
-		have = int(found["rank"])
-		if have < want:
-			return json.dumps({
-				"ok": False,
-				"reason": user + " is " + str(found["level"]) + ", " + str(bounty.min_level) + " required",
-				"level": str(found["level"]),
-				"required": str(bounty.min_level),
-			})
+		problem = self._claim_problem(bounty, user, claimant, found)
+		if problem:
+			return json.dumps(problem)
 
 		# ── COMMIT. The state change lands BEFORE the transfer, so a re-entrant
 		# ── claim finds a CLAIMED bounty and is refused by _mutable above.
@@ -482,6 +604,7 @@ class SkillConsumer(gl.Contract):
 			"paid": str(reward),
 			"to": str(bounty.claimant),
 			"github_username": user,
+			"identity_owner": claimant,
 			"level": str(found["level"]),
 			"verification_id": int(bounty.verification_id),
 			"content_hash": str(bounty.content_hash),
@@ -528,6 +651,42 @@ class SkillConsumer(gl.Contract):
 		return json.dumps(row)
 
 	@gl.public.view
+	def can_claim(self, bounty_id: int, github_username: str, claimant: str) -> str:
+		"""Would this claim be paid, and if not why not. NEVER RAISES.
+
+		The same gate claim_bounty runs, through the same helper, so this can
+		never promise a payout the transaction would refuse. Two uses: an
+		interface that has to explain a disabled button, and a READ-ONLY
+		deployment check that can prove the identity gate is live on chain
+		without sending a transaction or spending a bounty to do it."""
+		bounty = self._find(bounty_id)
+		if bounty is None:
+			return json.dumps({"ok": False, "reason": "unknown bounty_id"})
+		if not self._mutable(bounty):
+			return json.dumps({
+				"ok": False,
+				"reason": "bounty is " + str(bounty.status) + " and can never change",
+				"status": str(bounty.status),
+			})
+		user = _normalize_username(github_username)
+		if user == "":
+			return json.dumps({"ok": False, "reason": "github_username is empty"})
+		who = _normalize_address(claimant)
+		found = self._level_of(user, str(bounty.skill))
+		problem = self._claim_problem(bounty, user, who, found)
+		if problem:
+			return json.dumps(problem)
+		return json.dumps({
+			"ok": True,
+			"bounty_id": int(bounty.bounty_id),
+			"github_username": user,
+			"identity_owner": who,
+			"level": _as_text(found.get("level")),
+			"required": str(bounty.min_level),
+			"reward": str(int(bounty.reward)),
+		})
+
+	@gl.public.view
 	def get_bounties(self, offset: int, limit: int) -> str:
 		rows = self._page(self.bounty_ids, offset, limit)
 		return json.dumps({"total": len(self.bounty_ids), "returned": len(rows), "bounties": rows})
@@ -549,6 +708,9 @@ class SkillConsumer(gl.Contract):
 			"oracle": str(self.oracle),
 			"levels": list(LEVELS),
 			"statuses": [STATUS_OPEN, STATUS_CLAIMED, STATUS_WITHDRAWN],
+			# Published so the deploy script can assert, on chain and read-only,
+			# that the contract it just put up is the one that binds claimants.
+			"claims_are_identity_bound": True,
 			"min_reward": str(MIN_REWARD),
 			"max_reward": str(MAX_REWARD),
 			"max_bounties": MAX_BOUNTIES,

@@ -2724,6 +2724,15 @@ class TestConsumerAcrossARealBoundary(unittest.TestCase):
 		self.oracle = new_oracle()
 		as_sender(OWNER, 0)
 		self.oracle.set_cooldown(0)
+		# CAROL is the DEVELOPER. She registers the usernames she will claim
+		# under before anything is verified, which is the flow the identity gate
+		# expects and the only way a bounty can reach her.
+		as_sender(CAROL, 0)
+		self.oracle.register_identity("gvanrossum")
+		self.oracle.register_identity("octocat")
+		# ALICE pays for the verifications. That is allowed, it is useful, and
+		# it deliberately entitles her to nothing: who asked the question is not
+		# who owns the answer.
 		as_sender(ALICE, 0)
 		queue_ok("gvanrossum_Python")
 		self.oracle.verify_skill("gvanrossum", "Python")     # EXPERT
@@ -2796,8 +2805,13 @@ class TestConsumerAcrossARealBoundary(unittest.TestCase):
 
 	def test_claim_refused_for_an_unverified_user(self):
 		self.post()
+		# Registered, so the identity gate passes and the REFUSAL UNDER TEST is
+		# the one about evidence rather than the one about identity.
 		as_sender(CAROL, 0)
-		self.assertFalse(jload(self.consumer.claim_bounty(1, "nobody"))["ok"])
+		self.oracle.register_identity("nobody")
+		out = jload(self.consumer.claim_bounty(1, "nobody"))
+		self.assertFalse(out["ok"])
+		self.assertIn("no usable verification", out["reason"])
 
 	def test_a_claimed_bounty_cannot_be_claimed_twice(self):
 		self.post()
@@ -2975,6 +2989,395 @@ class TestConsumerAcrossARealBoundary(unittest.TestCase):
 		self.assertEqual(jload(self.consumer.get_bounties(0, 50))["total"], 2)
 		self.assertEqual(jload(self.consumer.get_bounties_by_skill("python", 0, 50))["total"], 1)
 		self.assertEqual(jload(self.consumer.get_bounties_by_skill("cobol", 0, 50))["total"], 0)
+
+
+class TestIdentityRegistry(unittest.TestCase):
+	"""register_identity — the half the oracle was missing.
+
+	A verification says what a USERNAME is worth. It cannot say who is entitled
+	to spend that, because anybody may ask this oracle about anybody. Without a
+	binding, a consumer paying out on a level pays whoever quotes the username
+	first, which is a theft of someone else's work and reads on chain as a
+	perfectly valid claim."""
+
+	def setUp(self):
+		self.oracle = new_oracle()
+
+	def register(self, sender, username):
+		as_sender(sender, 0)
+		return jload(self.oracle.register_identity(username))
+
+	def test_registration_binds_the_caller(self):
+		out = self.register(ALICE, "torvalds")
+		self.assertTrue(out["ok"])
+		self.assertFalse(out["already_registered"])
+		self.assertEqual(out["identity_owner"], str(ALICE))
+		self.assertTrue(self.oracle.owns_identity("torvalds", str(ALICE)))
+		self.assertFalse(self.oracle.owns_identity("torvalds", str(BOB)))
+
+	def test_a_second_wallet_cannot_take_a_registered_username(self):
+		self.register(ALICE, "torvalds")
+		out = self.register(BOB, "torvalds")
+		self.assertFalse(out["ok"])
+		self.assertIn("already registered", out["reason"])
+		# AND THE BINDING DID NOT MOVE. A refusal that quietly rebound the
+		# username would be the same bug wearing an error message.
+		self.assertEqual(jload(self.oracle.get_identity("torvalds"))["identity_owner"], str(ALICE))
+		self.assertTrue(self.oracle.owns_identity("torvalds", str(ALICE)))
+
+	def test_re_registering_is_idempotent_for_the_holder(self):
+		first = self.register(ALICE, "torvalds")
+		again = self.register(ALICE, "torvalds")
+		self.assertTrue(again["ok"])
+		self.assertTrue(again["already_registered"])
+		self.assertEqual(again["registered_at"], first["registered_at"])
+		# and it is counted once
+		self.assertEqual(jload(self.oracle.get_stats())["identities_registered"], 1)
+
+	def test_registration_is_case_insensitive(self):
+		self.register(ALICE, "  Torvalds ")
+		self.assertTrue(self.oracle.owns_identity("TORVALDS", str(ALICE)))
+		self.assertFalse(self.register(BOB, "torvalds")["ok"])
+
+	def test_an_unregistered_username_is_owned_by_nobody(self):
+		out = jload(self.oracle.get_identity("torvalds"))
+		self.assertFalse(out["registered"])
+		self.assertEqual(out["identity_owner"], "")
+		# THE ZERO-ADDRESS TRAP. An Address-valued TreeMap answers a missing key
+		# with 0x000…0, not with None (NOTES.md 8), so an owner check written
+		# the obvious way makes the zero address the owner of every name.
+		self.assertFalse(self.oracle.owns_identity("torvalds", "0x" + "0" * 40))
+		self.assertFalse(self.oracle.owns_identity("torvalds", ""))
+
+	def test_a_malformed_username_is_refused_and_writes_nothing(self):
+		# 7 is NOT here: "7" is a legal GitHub username and _username_problem
+		# says so. The list is things that must be refused, not things that look
+		# odd in Python.
+		for bad in ("", "   ", "-nope", "a" * 60, "a/b", None, {"a": 1}, "tor valds"):
+			out = self.register(ALICE, bad)
+			self.assertFalse(out["ok"], repr(bad))
+		self.assertEqual(jload(self.oracle.get_stats())["identities_registered"], 0)
+
+	def test_register_identity_never_raises(self):
+		for bad in ("", None, 7, b"z", {"a": 1}, "x" * 5000, "\x00", "tor valds"):
+			try:
+				jload(self.oracle.register_identity(bad))
+			except Exception as exc:
+				self.fail("register_identity raised for %r: %r" % (bad, exc))
+
+	def test_a_paused_contract_registers_nothing(self):
+		as_sender(OWNER, 0)
+		self.oracle.pause()
+		self.assertFalse(self.register(ALICE, "torvalds")["ok"])
+		as_sender(OWNER, 0)
+		self.oracle.unpause()
+		self.assertTrue(self.register(ALICE, "torvalds")["ok"])
+
+	def test_the_owner_cannot_move_a_binding(self):
+		"""THE PROPERTY A REVIEWER LOOKS FOR. Enumerated: every write the owner
+		has is called, and the binding is compared before and after."""
+		self.register(ALICE, "torvalds")
+		before = jload(self.oracle.get_identity("torvalds"))
+		as_sender(OWNER, 0)
+		self.oracle.set_fee(0)
+		self.oracle.set_cooldown(0)
+		self.oracle.set_resolve_window(3600)
+		self.oracle.set_freshness_window(0)
+		self.oracle.pause()
+		self.oracle.unpause()
+		self.assertFalse(jload(self.oracle.register_identity("torvalds"))["ok"])
+		self.assertEqual(jload(self.oracle.get_identity("torvalds")), before)
+
+	def test_only_register_identity_writes_the_table(self):
+		# Parsed rather than remembered. A second writer anywhere in the file —
+		# an owner override, a "fix a typo" helper — would make the binding
+		# movable, and movable is not a binding.
+		cls = _contract_class(SV_TREE, "SkillVerify")
+		writers = []
+		for fn in _methods(cls):
+			for node in ast.walk(fn):
+				if not isinstance(node, (ast.Assign, ast.AugAssign, ast.AnnAssign)):
+					continue
+				targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+				for t in targets:
+					base = t
+					while isinstance(base, ast.Subscript):
+						base = base.value
+					if isinstance(base, ast.Attribute) and base.attr in ("identities", "identity_at"):
+						writers.append(fn.name)
+		self.assertEqual(sorted(set(writers)), ["register_identity"])
+
+	def test_the_binding_rides_on_every_verification_document(self):
+		self.register(ALICE, "torvalds")
+		as_sender(BOB, 0)
+		queue_ok("torvalds_C")
+		out = jload(self.oracle.verify_skill("torvalds", "C"))
+		self.assertTrue(out["ok"])
+		vid = out["verification_id"]
+		for document in (
+			jload(self.oracle.get_verification(vid)),
+			jload(self.oracle.get_latest("torvalds", "C")),
+			jload(self.oracle.get_verifications_by_user("torvalds", 0, 50))["verifications"][0],
+			jload(self.oracle.get_verifications_by_skill("C", 0, 50))["verifications"][0],
+			jload(self.oracle.require_verified("torvalds", "C", "EXPERT")),
+		):
+			self.assertEqual(document["identity_owner"], str(ALICE))
+			# and verified_by is still WHO PAID, which is somebody else entirely
+			self.assertEqual(document["verified_by"], str(BOB))
+
+	def test_get_latest_reports_the_binding_even_with_no_verification(self):
+		self.register(ALICE, "torvalds")
+		out = jload(self.oracle.get_latest("torvalds", "C"))
+		self.assertFalse(out["found"])
+		self.assertEqual(out["identity_owner"], str(ALICE))
+
+	def test_is_verified_identity_needs_both_halves(self):
+		self.register(ALICE, "torvalds")
+		as_sender(ALICE, 0)
+		queue_ok("torvalds_C")
+		self.oracle.verify_skill("torvalds", "C")
+		self.assertTrue(self.oracle.is_verified("torvalds", "C", "EXPERT"))
+		self.assertTrue(self.oracle.is_verified_identity("torvalds", "C", "EXPERT", str(ALICE)))
+		# the level holds, the identity does not
+		self.assertFalse(self.oracle.is_verified_identity("torvalds", "C", "EXPERT", str(BOB)))
+		# the identity holds, the level does not
+		self.assertFalse(self.oracle.is_verified_identity("torvalds", "Haskell", "EXPERT", str(ALICE)))
+		# and an unregistered username fails both ways round
+		self.assertFalse(self.oracle.is_verified_identity("octocat", "HTML", "NONE", str(ALICE)))
+
+	def test_identity_views_never_raise_on_junk(self):
+		for bad in ("", None, 7, {"a": 1}, "x" * 5000):
+			try:
+				jload(self.oracle.get_identity(bad))
+				self.oracle.owns_identity(bad, bad)
+				self.oracle.is_verified_identity(bad, bad, bad, bad)
+			except Exception as exc:
+				self.fail("identity view raised for %r: %r" % (bad, exc))
+
+	def test_verification_is_still_permissionless(self):
+		# The binding must NOT become a gate on asking the question. Anyone may
+		# verify anyone — that is what makes the oracle useful — and the whole
+		# fix is that asking no longer entitles the asker to anything.
+		self.register(ALICE, "torvalds")
+		as_sender(BOB, 0)
+		queue_ok("torvalds_C")
+		out = jload(self.oracle.verify_skill("torvalds", "C"))
+		self.assertTrue(out["ok"])
+		self.assertEqual(out["level"], "EXPERT")
+
+
+class TestBountyClaimsAreIdentityBound(unittest.TestCase):
+	"""THE REVIEWER'S FINDING, closed and kept closed.
+
+	claim_bounty(id, "torvalds") used to pay whoever sent the transaction. The
+	level was real, the verification was real, and the money went to a stranger
+	who had read a username off the explorer."""
+
+	def setUp(self):
+		self.oracle = new_oracle()
+		as_sender(OWNER, 0)
+		self.oracle.set_cooldown(0)
+		self.consumer = new_consumer(self.oracle)
+
+	def post(self, skill="C", level="PROFICIENT", value=GEN, sender=OWNER):
+		as_sender(sender, value)
+		out = jload(self.consumer.post_bounty("Port the driver", skill, level))
+		self.assertTrue(out["ok"], out)
+		return out["bounty_id"]
+
+	def register(self, sender, username):
+		as_sender(sender, 0)
+		return jload(self.oracle.register_identity(username))
+
+	def verify(self, sender, username, skill, fixture):
+		as_sender(sender, 0)
+		queue_ok(fixture)
+		out = jload(self.oracle.verify_skill(username, skill))
+		self.assertTrue(out["ok"], out)
+		return out
+
+	def claim(self, sender, bounty_id, username):
+		as_sender(sender, 0)
+		before = len(TRANSFERS)
+		out = jload(self.consumer.claim_bounty(bounty_id, username))
+		return out, TRANSFERS[before:]
+
+	# ── 1. the owner of the username claims ─────────────────────────────
+
+	def test_alice_registers_verifies_and_claims(self):
+		self.register(ALICE, "torvalds")
+		self.verify(ALICE, "torvalds", "C", "torvalds_C")
+		bounty = self.post()
+		out, moved = self.claim(ALICE, bounty, "torvalds")
+		self.assertTrue(out["ok"], out)
+		self.assertEqual(moved, [(str(ALICE), GEN)])
+		self.assertEqual(out["identity_owner"], str(ALICE))
+
+	# ── 2. a stranger quoting the same username does not ────────────────
+
+	def test_bob_cannot_claim_with_alices_username(self):
+		self.register(ALICE, "torvalds")
+		self.verify(ALICE, "torvalds", "C", "torvalds_C")
+		bounty = self.post()
+		out, moved = self.claim(BOB, bounty, "torvalds")
+		self.assertFalse(out["ok"], out)
+		self.assertIn("only that wallet may claim", out["reason"])
+		self.assertEqual(out["identity_owner"], str(ALICE))
+		self.assertEqual(moved, [])
+		# THE BOUNTY SURVIVES THE ATTEMPT. A refusal that burned the bounty
+		# would hand the thief a denial of service instead of a payout.
+		self.assertEqual(jload(self.consumer.get_bounty(bounty))["status"], "OPEN")
+		out, moved = self.claim(ALICE, bounty, "torvalds")
+		self.assertTrue(out["ok"], out)
+		self.assertEqual(moved, [(str(ALICE), GEN)])
+
+	# ── 3. everyone claims under their own name ─────────────────────────
+
+	def test_bob_registers_his_own_username_and_claims(self):
+		self.register(ALICE, "torvalds")
+		self.register(BOB, "kenil1710")
+		self.verify(BOB, "kenil1710", "JavaScript", "kenil1710_JS")
+		bounty = self.post(skill="JavaScript")
+		out, moved = self.claim(BOB, bounty, "kenil1710")
+		self.assertTrue(out["ok"], out)
+		self.assertEqual(moved, [(str(BOB), GEN)])
+
+	# ── 4. THE REASON verified_by IS NOT THE BINDING ────────────────────
+
+	def test_verifying_someone_elses_username_does_not_earn_the_claim(self):
+		"""The attack the obvious fix would have left open.
+
+		Binding the claim to `verified_by` — the wallet that requested the
+		verification — looks equivalent and is not. latest_resolved moves to the
+		NEWEST resolved record for a pair, so a thief only has to call
+		verify_skill on the username themselves, pay the fee, and become its
+		verified_by. A binding anybody can buy is not a binding."""
+		self.register(ALICE, "torvalds")
+		self.verify(ALICE, "torvalds", "C", "torvalds_C")
+		bounty = self.post()
+
+		# BOB re-verifies the same username. This succeeds — verification is
+		# permissionless — and it makes him verified_by on the record the
+		# consumer now reads.
+		second = self.verify(BOB, "torvalds", "C", "torvalds_C")
+		document = jload(self.oracle.get_latest("torvalds", "C"))
+		self.assertEqual(document["verification_id"], second["verification_id"])
+		self.assertEqual(document["verified_by"], str(BOB))
+		self.assertEqual(document["identity_owner"], str(ALICE))
+
+		out, moved = self.claim(BOB, bounty, "torvalds")
+		self.assertFalse(out["ok"], out)
+		self.assertEqual(moved, [])
+		# and Alice, who never touched the second verification, still can
+		out, moved = self.claim(ALICE, bounty, "torvalds")
+		self.assertTrue(out["ok"], out)
+		self.assertEqual(moved, [(str(ALICE), GEN)])
+
+	# ── 5. no binding at all is a refusal, never a default ──────────────
+
+	def test_an_unregistered_username_cannot_be_claimed(self):
+		self.verify(ALICE, "torvalds", "C", "torvalds_C")
+		bounty = self.post()
+		for who in (ALICE, BOB, OWNER):
+			out, moved = self.claim(who, bounty, "torvalds")
+			self.assertFalse(out["ok"], out)
+			self.assertIn("not bound to any wallet", out["reason"])
+			self.assertEqual(moved, [])
+		# It becomes claimable the moment the developer registers, and only
+		# by them.
+		self.register(ALICE, "torvalds")
+		out, moved = self.claim(BOB, bounty, "torvalds")
+		self.assertFalse(out["ok"], out)
+		out, moved = self.claim(ALICE, bounty, "torvalds")
+		self.assertTrue(out["ok"], out)
+
+	def test_an_oracle_with_no_identity_field_fails_closed(self):
+		"""An older oracle answers get_latest with no identity_owner at all.
+		That must read as "no binding" and refuse — never as "no binding
+		needed", which is the bug returning through the back door."""
+		self.register(ALICE, "torvalds")
+		self.verify(ALICE, "torvalds", "C", "torvalds_C")
+		bounty = self.post()
+
+		class _OldOracle:
+			def __init__(self, inner):
+				self._inner = inner
+
+			def __getattr__(self, name):
+				return getattr(self._inner, name)
+
+			def get_latest(self, username, skill):
+				document = json.loads(self._inner.get_latest(username, skill))
+				document.pop("identity_owner", None)
+				return json.dumps(document)
+
+		ORACLE["impl"] = _OldOracle(self.oracle)
+		try:
+			out, moved = self.claim(ALICE, bounty, "torvalds")
+		finally:
+			ORACLE["impl"] = self.oracle
+		self.assertFalse(out["ok"], out)
+		self.assertIn("not bound to any wallet", out["reason"])
+		self.assertEqual(moved, [])
+
+	# ── 6. the dry run cannot disagree with the transaction ─────────────
+
+	def test_can_claim_predicts_every_outcome(self):
+		self.register(ALICE, "torvalds")
+		self.verify(ALICE, "torvalds", "C", "torvalds_C")
+		bounty = self.post()
+		for who, username in ((BOB, "torvalds"), (ALICE, "nobody"), (ALICE, "torvalds")):
+			dry = jload(self.consumer.can_claim(bounty, username, str(who)))
+			out, _ = self.claim(who, bounty, username)
+			self.assertEqual(dry["ok"], out["ok"], (str(who), username))
+			if not dry["ok"]:
+				self.assertEqual(dry["reason"], out["reason"])
+
+	def test_can_claim_never_raises_and_moves_nothing(self):
+		self.register(ALICE, "torvalds")
+		self.verify(ALICE, "torvalds", "C", "torvalds_C")
+		bounty = self.post()
+		before = len(TRANSFERS)
+		for bad in (0, -1, 999, None, "x"):
+			self.assertFalse(jload(self.consumer.can_claim(bad, "torvalds", str(ALICE)))["ok"])
+		for bad in ("", None, 7, {"a": 1}):
+			try:
+				self.consumer.can_claim(bounty, bad, bad)
+			except Exception as exc:
+				self.fail("can_claim raised for %r: %r" % (bad, exc))
+		self.assertEqual(TRANSFERS[before:], [])
+		self.assertEqual(jload(self.consumer.get_bounty(bounty))["status"], "OPEN")
+
+	# ── 7. the books survive a theft attempt ────────────────────────────
+
+	def test_a_refused_claim_changes_nothing(self):
+		self.register(ALICE, "torvalds")
+		self.verify(ALICE, "torvalds", "C", "torvalds_C")
+		bounty = self.post()
+		before = jload(self.consumer.get_terms())
+		snapshot = jload(self.consumer.get_bounty(bounty))
+		out, moved = self.claim(BOB, bounty, "torvalds")
+		self.assertFalse(out["ok"])
+		self.assertEqual(moved, [])
+		self.assertEqual(jload(self.consumer.get_terms()), before)
+		self.assertEqual(jload(self.consumer.get_bounty(bounty)), snapshot)
+
+	def test_the_claimed_bounty_records_the_wallet_it_paid(self):
+		self.register(ALICE, "torvalds")
+		self.verify(ALICE, "torvalds", "C", "torvalds_C")
+		bounty = self.post()
+		self.claim(ALICE, bounty, "torvalds")
+		row = jload(self.consumer.get_bounty(bounty))
+		self.assertEqual(row["status"], "CLAIMED")
+		self.assertEqual(row["claimant"], str(ALICE))
+		self.assertEqual(row["claimed_username"], "torvalds")
+		self.assertTrue(self.oracle.owns_identity(row["claimed_username"], row["claimant"]))
+
+	def test_the_consumer_publishes_that_it_binds_claimants(self):
+		# A deploy-time property: the contract says on chain that its claims are
+		# identity-bound, and the oracle says it can bind them.
+		self.assertTrue(jload(self.consumer.get_terms())["claims_are_identity_bound"])
+		self.assertEqual(jload(self.oracle.get_config())["identity_binding"], "register_identity")
 
 
 class TestConsensusShape(unittest.TestCase):
@@ -3568,7 +3971,9 @@ class TestArtifact(unittest.TestCase):
 				"get_verifications_by_skill", "is_verified", "require_verified",
 				"get_stats", "get_config", "get_latest", "set_fee", "pause",
 				"unpause", "transfer_ownership", "withdraw_fees",
-				"set_cooldown", "set_resolve_window", "set_freshness_window"):
+				"set_cooldown", "set_resolve_window", "set_freshness_window",
+				"register_identity", "get_identity", "owns_identity",
+				"is_verified_identity"):
 			self.assertTrue(hasattr(self.mod.SkillVerify, method), method)
 			self.assertNotIn(method, self.map, method + " was renamed — that is the ABI")
 
@@ -3576,7 +3981,7 @@ class TestArtifact(unittest.TestCase):
 		for method in ("require_skill", "check_skill", "get_skill_report",
 				"post_bounty", "claim_bounty", "withdraw_bounty", "get_bounty",
 				"get_bounties", "get_bounties_by_skill", "get_terms",
-				"get_oracle_config"):
+				"get_oracle_config", "can_claim"):
 			self.assertTrue(hasattr(self.cmod.SkillConsumer, method), method)
 			self.assertNotIn(method, self.cmap, method)
 
@@ -3615,7 +4020,12 @@ class TestArtifact(unittest.TestCase):
 			if isinstance(n, ast.Constant) and isinstance(n.value, str)}
 		for required in ("EXPERT", "PROFICIENT", "BEGINNER", "NONE", "PENDING",
 				"RESOLVED", "STALLED", "UNAVAILABLE", "NO_SUCH_USER",
-				"github_repo_size_kb", "verification_id", "content_hash", "level"):
+				"github_repo_size_kb", "verification_id", "content_hash", "level",
+				# The identity binding is read across the contract boundary BY
+				# THESE EXACT KEYS. A mangle that moved one would silently take
+				# the gate off — identity_owner would read "" and every claim
+				# would be refused, or worse.
+				"identity_owner", "verified_by", "register_identity"):
 			self.assertIn(required, src_strings, required)
 			self.assertIn(required, art_strings, required + " lost in the mangle")
 
@@ -3711,6 +4121,10 @@ class TestArtifact(unittest.TestCase):
 		reset_world()
 		as_sender(OWNER, 0)
 		oracle = self.mod.SkillVerify(0)
+		# THE IDENTITY BINDING, THROUGH THE MANGLED BYTES. CAROL registers,
+		# ALICE pays for the verification, and only CAROL can claim on it.
+		as_sender(CAROL, 0)
+		self.assertTrue(jload(oracle.register_identity("gvanrossum"))["ok"])
 		as_sender(ALICE, 0)
 		queue_ok("gvanrossum_Python")
 		oracle.verify_skill("gvanrossum", "Python")
@@ -3721,6 +4135,13 @@ class TestArtifact(unittest.TestCase):
 
 		as_sender(BOB, GEN)
 		self.assertTrue(jload(consumer.post_bounty("Port it", "Python", "PROFICIENT"))["ok"])
+		# BOB quotes the username he does not own, and the mangled bytes refuse
+		# him exactly as the source does.
+		as_sender(BOB, 0)
+		before = len(TRANSFERS)
+		stolen = jload(consumer.claim_bounty(1, "gvanrossum"))
+		self.assertFalse(stolen["ok"])
+		self.assertEqual(TRANSFERS[before:], [])
 		as_sender(CAROL, 0)
 		before = len(TRANSFERS)
 		claim = jload(consumer.claim_bounty(1, "gvanrossum"))

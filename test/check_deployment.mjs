@@ -44,6 +44,7 @@ const cfg = JSON.parse(await view(ORACLE, "get_config"));
 const stats = JSON.parse(await view(ORACLE, "get_stats"));
 const terms = JSON.parse(await view(CONSUMER, "get_terms"));
 const viaConsumer = JSON.parse(await view(CONSUMER, "get_oracle_config"));
+const identity = JSON.parse(await view(ORACLE, "get_identity", ["nobody-at-all-here"]));
 
 console.log(`SkillVerify    ${ORACLE}   (${networkName})`);
 console.log(`  owner        ${cfg.owner}`);
@@ -56,6 +57,7 @@ console.log(`  cooldown     ${cfg.cooldown_seconds}s   resolve_window ${cfg.reso
 console.log(`  verifications ${stats.total_verifications} — ${stats.resolved} resolved, ${stats.pending} pending, ${stats.stalled} stalled`);
 console.log(`SkillConsumer  ${CONSUMER}`);
 console.log(`  oracle       ${terms.oracle}`);
+console.log(`  identities   ${stats.identities_registered}   claims bound ${terms.claims_are_identity_bound}`);
 console.log(`  bounties     ${terms.bounties}   open_liability ${terms.open_liability}\n`);
 
 const checks = [
@@ -81,6 +83,20 @@ const checks = [
   ["both ladders agree", JSON.stringify(terms.levels) === JSON.stringify(cfg.levels)],
   ["the consumer reads the oracle across the boundary",
     String(viaConsumer.owner ?? "").toLowerCase() === String(cfg.owner).toLowerCase()],
+  // ── THE IDENTITY BINDING. A verification says what a USERNAME is worth; it
+  // cannot say who may spend it. These four are read-only proof that the live
+  // pair refuses a claimant it has never bound — checkable by anyone, without a
+  // key and without spending a bounty to find out.
+  ["the oracle can bind an identity", cfg.identity_binding === "register_identity"],
+  ["the consumer binds its claimants", terms.claims_are_identity_bound === true],
+  ["an unregistered username owns nothing",
+    identity.registered === false && identity.identity_owner === ""],
+  ["owns_identity is false for the zero address",
+    (await view(ORACLE, "owns_identity",
+      ["nobody-at-all-here", "0x0000000000000000000000000000000000000000"])) === false],
+  ["is_verified_identity refuses an unbound claimant",
+    (await view(ORACLE, "is_verified_identity",
+      ["nobody-at-all-here", "Cobol", "NONE", "0x0000000000000000000000000000000000000001"])) === false],
 ];
 
 let bad = 0;
