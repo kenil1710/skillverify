@@ -6,9 +6,9 @@
   "artifacts": {
     "build/SkillVerify.min.py": {
       "source": "contracts/SkillVerify.py",
-      "bytes": 21741,
-      "sha256": "17b1e838194ceb16e8fd2a37651847b32e5647ded39e062a4a203d42dd05829f",
-      "source_sha256": "9056801ff819244bf4664afc8de308a22ee57f8904410d121aeeca540a4f7fb7"
+      "bytes": 22259,
+      "sha256": "31a52420f7138bcef571f22e85a1a2f167ce70d3da30669ee1d02439f30f06dd",
+      "source_sha256": "8795b19861ebb3f3a2c60a397c2572529b2be49f17bfcdb41f0f512889039f77"
     },
     "build/SkillConsumer.min.py": {
       "source": "contracts/SkillConsumer.py",
@@ -23,7 +23,8 @@
       "SkillConsumer": "0x08CedAECe6BbB6accE3Ed5B6A0708765a2627B77",
       "owner": "0x05b6EF29873BE3e7bf600C73298cC9EC9DDe6815",
       "deployedAt": "2026-09-07",
-      "e2e": "111 passed, 0 failed, 0 notes"
+      "e2e": "111 passed, 0 failed, 0 notes",
+      "note": "SUPERSEDED. Pre-fix artifact (sha256 17b1e838\u2026); the validator compared the level alone."
     },
     "bradbury": {
       "SkillVerify": "0xA89c18414E586741b91e057213ca3007A6E06cCf",
@@ -31,7 +32,7 @@
       "owner": "0xC70FF4C06aEcb796ED712029EE548834764c9Fe8",
       "deployedAt": "2026-09-07",
       "verified": "16/16 read-only checks \u2014 node test/check_deployment.mjs --network=bradbury",
-      "note": "Config verified live, including that the consumer reads THIS oracle across the contract boundary. No verifications submitted yet; the E2E write suite needs the wallet roles funded on Bradbury."
+      "note": "SUPERSEDED. This address holds the pre-fix artifact (sha256 17b1e838\u2026), whose validator compared the level alone and left the repo_count and total_bytes it is checked against unagreed. Awaiting redeploy of sha256 31a52420\u2026 \u2014 node test/deploy.mjs --network=bradbury --keystore=mywallet"
     }
   },
   "probes": {

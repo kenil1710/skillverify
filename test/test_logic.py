@@ -305,6 +305,13 @@ LAST_CONSENSUS = {}
 # When set, the validator's own re-run returns this instead, so a genuine
 # leader/validator disagreement can be staged.
 VALIDATOR_QUEUE = []
+# A MALICIOUS LEADER. Each entry is a callable applied to the leader's result
+# dict AFTER it is computed and BEFORE the validator or the contract ever sees
+# it — which is exactly the power a real leader has: it does the work honestly
+# or dishonestly and broadcasts whatever payload it likes. Nothing else in the
+# harness can stage the forgery this project was rejected for, because that
+# forgery lives in the gap between what a leader computed and what it reported.
+LEADER_FORGE = []
 
 
 class _Response:
@@ -330,6 +337,11 @@ def _run_nondet(leader_fn, validator_fn):
 	applies NOTHING, and a stub that quietly returned the leader's answer would
 	let every test pass while consensus was broken."""
 	result = leader_fn()
+	if LEADER_FORGE:
+		# The leader tampers with its own payload before broadcasting it. The
+		# validator is handed the FORGED document and the contract applies the
+		# FORGED document, which is what happens on chain.
+		result = LEADER_FORGE.pop(0)(result)
 	# The validator RE-RUNS the leader function, so its own response has to be
 	# in the queue before it is called. A test stages a genuine disagreement by
 	# putting a different body in VALIDATOR_QUEUE.
@@ -718,6 +730,7 @@ def queue_raw(status, body, validator=None):
 def reset_world():
 	FETCH_QUEUE.clear()
 	VALIDATOR_QUEUE.clear()
+	LEADER_FORGE.clear()
 	FETCH_LOG.clear()
 	TRANSFERS.clear()
 	LAST_CONSENSUS.clear()
@@ -955,7 +968,7 @@ class TestNondetHygiene(unittest.TestCase):
 
 	def test_helpers_used_by_closures_are_module_level(self):
 		names = {n.name for n in SV_TREE.body if isinstance(n, ast.FunctionDef)}
-		for required in ("_evaluate", "_score", "_search_url", "_pct", "_level_for", "_axis_of"):
+		for required in ("_evaluate", "_score", "_search_url", "_pct", "_level_for", "_axis_of", "_compare_key"):
 			self.assertIn(required, names)
 
 	def test_leader_error_is_rerun_not_voted_false(self):
@@ -973,16 +986,27 @@ class TestNondetHygiene(unittest.TestCase):
 		# nothing. It must produce its own answer.
 		src = SOURCE.read_text(encoding="utf8")
 		block = src.split("def validator_fn(", 1)[1]
-		self.assertIn("_axis_of(leader_fn())", block)
+		self.assertIn("_compare_key(leader_fn())", block)
 
-	def test_only_the_axis_is_compared(self):
-		# One string. Every extra compared field is another way to land
-		# UNDETERMINED (docs/PROBE.md 6).
+	def test_the_compared_key_is_the_bound_one(self):
+		# THE REJECTED VERSION COMPARED _axis_of HERE — one string, with the
+		# repo_count and total_bytes that the stored level is checked against
+		# riding along uncompared. The validator must compare the key that
+		# binds them, and must not fall back to the bare axis.
 		src = SOURCE.read_text(encoding="utf8")
 		block = src.split("def validator_fn(", 1)[1].split("outcome = gl.vm.run_nondet", 1)[0]
 		self.assertIn("return mine == theirs", block)
-		for forbidden in ("repo_count", "total_bytes", "index_count", "sort_keys"):
-			self.assertNotIn(forbidden, block, "validator compares " + forbidden)
+		self.assertIn("_compare_key(", block)
+		self.assertNotIn("_axis_of(", block, "validator compares the unbound axis")
+
+	def test_the_bound_key_reads_both_counts(self):
+		# Asserted against the helper rather than the closure, because that is
+		# where the binding now lives and a _compare_key that quietly stopped
+		# reading a count would restore the hole with the call site intact.
+		src = SOURCE.read_text(encoding="utf8")
+		block = src.split("def _compare_key(", 1)[1].split("\ndef ", 1)[0]
+		for required in ('result.get("repo_count")', 'result.get("total_bytes")'):
+			self.assertIn(required, block, "_compare_key does not read " + required)
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -2988,11 +3012,17 @@ class TestConsensusShape(unittest.TestCase):
 		self.assertFalse(LAST_CONSENSUS["agreed"])
 		self.assertEqual(before["resolved"], 0)
 
-	def test_byte_differences_that_do_not_change_the_level_still_agree(self):
-		# THE REASON THE AXIS IS ONE STRING. A repository pushed between the
-		# leader's fetch and a validator's changes `size`, and a byte-comparison
-		# would land UNDETERMINED for a reason that has nothing to do with the
-		# skill.
+	def test_byte_differences_are_a_disagreement_now_that_the_counts_are_bound(self):
+		# THE PRICE OF BINDING THE COUNTS, asserted so it is a decision rather
+		# than a surprise. A repository pushed between the leader's fetch and a
+		# validator's changes `size`, and the round now lands UNDETERMINED
+		# where it used to commit.
+		#
+		# It is the right trade. UNDETERMINED is a retry that costs a caller
+		# nothing — verify_skill writes no storage on an undetermined round —
+		# and the alternative, leaving the counts uncompared, is what let a
+		# leader forge the numbers the level is computed from. A retry is
+		# recoverable; a forged EXPERT on chain is not.
 		leader = json.loads(fixture_body("torvalds_C"))
 		validator = json.loads(fixture_body("torvalds_C"))
 		validator["items"][0]["size"] += 17          # somebody pushed
@@ -3000,6 +3030,17 @@ class TestConsensusShape(unittest.TestCase):
 		as_sender(ALICE, 0)
 		FETCH_QUEUE.append((200, json.dumps(leader)))
 		VALIDATOR_QUEUE.append([(200, json.dumps(validator))])
+		with self.assertRaises(AssertionError):
+			self.c.verify_skill("torvalds", "C")
+		self.assertFalse(LAST_CONSENSUS["agreed"])
+
+	def test_the_same_bytes_on_both_nodes_still_agree(self):
+		# The other half of the trade: an unchanged repository list commits,
+		# which is the ordinary case and must not have become fragile.
+		body = fixture_body("torvalds_C")
+		as_sender(ALICE, 0)
+		FETCH_QUEUE.append((200, body))
+		VALIDATOR_QUEUE.append([(200, body)])
 		out = jload(self.c.verify_skill("torvalds", "C"))
 		self.assertTrue(out["ok"])
 		self.assertTrue(LAST_CONSENSUS["agreed"])
@@ -3027,6 +3068,300 @@ class TestConsensusShape(unittest.TestCase):
 		VALIDATOR_QUEUE.append([(403, RATE_LIMIT_BODY)])
 		out = jload(self.c.verify_skill("torvalds", "C"))
 		self.assertEqual(out["status"], "PENDING")
+
+
+class TestConsensusBindsTheCountsToTheLevel(unittest.TestCase):
+	"""THE REJECTION THIS FILE EXISTS TO KEEP CLOSED.
+
+	The level stored on a record used to be derived from `repo_count` and
+	`total_bytes` that nothing compared: validators voted on one string, and
+	the two numbers that decide what that string MEANS rode along unchecked.
+	A leader could therefore answer NONE — which validators looking at a real
+	NONE would unanimously agree with — while attaching repo_count=100 and
+	total_bytes=10**9, and the contract would compute EXPERT from the forged
+	numbers and store it as a consensus result.
+
+	Two independent gates close it, and both are tested here:
+
+	  1. CONSENSUS. The compared key is level + repo_count + total_bytes
+	     (_compare_key), so the numbers are agreed, not merely carried.
+	  2. COHERENCE. _apply re-runs the ladder over the agreed counts and
+	     refuses an axis its own counts contradict — which catches a payload
+	     that got past gate 1 with matching counts and a wrong level.
+
+	The forgery is staged with LEADER_FORGE, which tampers with the leader's
+	payload after it is computed and before anyone sees it. That is precisely
+	the power a real leader has, and nothing weaker reproduces the bug."""
+
+	def setUp(self):
+		self.c = new_oracle()
+
+	# ── gate 1: the counts are part of what consensus compares ─────────────
+
+	def test_the_compared_key_binds_the_counts(self):
+		base = {"axis": "NONE", "repo_count": 0, "total_bytes": 0}
+		forged = {"axis": "NONE", "repo_count": 100, "total_bytes": 10 ** 9}
+		self.assertNotEqual(SV._compare_key(base), SV._compare_key(forged))
+		# ...where the old comparison saw one value and agreed.
+		self.assertEqual(SV._axis_of(base), SV._axis_of(forged))
+
+	def test_the_compared_key_cannot_collide_across_the_separator(self):
+		# ("1", "23") and ("12", "3") must not fold into one key.
+		a = {"axis": "NONE", "repo_count": 1, "total_bytes": 23}
+		b = {"axis": "NONE", "repo_count": 12, "total_bytes": 3}
+		self.assertNotEqual(SV._compare_key(a), SV._compare_key(b))
+
+	def test_a_missing_count_is_not_zero(self):
+		# A validator that legitimately measured ZERO repositories must not be
+		# made to agree with a payload that omitted the field.
+		self.assertNotEqual(
+			SV._compare_key({"axis": "NONE", "repo_count": 0, "total_bytes": 0}),
+			SV._compare_key({"axis": "NONE"}),
+		)
+
+	def test_the_non_level_axes_still_compare_bare(self):
+		# NO_SUCH_USER and UNAVAILABLE carry no counts — binding them would
+		# make two rate-limited nodes disagree for no reason (rule 4).
+		self.assertEqual(SV._compare_key({"axis": "UNAVAILABLE", "status": 403}),
+			SV._compare_key({"axis": "UNAVAILABLE", "status": 503}))
+		self.assertEqual(SV._compare_key({"axis": "NO_SUCH_USER", "status": 422}),
+			SV._compare_key({"axis": "NO_SUCH_USER", "status": 422}))
+
+	def test_compare_key_never_raises(self):
+		for junk in (None, 0, "", b"x", [], {}, {"axis": None},
+				{"axis": "EXPERT", "repo_count": "many", "total_bytes": None},
+				{"axis": "EXPERT", "repo_count": [1], "total_bytes": {"a": 1}}):
+			self.assertIsInstance(SV._compare_key(junk), str)
+
+	def test_leader_sends_NONE_axis_but_forges_repo_count_100(self):
+		# THE EXACT REJECTION. Validators see a real NONE and vote NONE; the
+		# leader broadcasts NONE with 100 repositories and a gigabyte, from
+		# which the old code computed and stored EXPERT.
+		body = fixture_body("torvalds_Haskell")            # a genuine NONE
+		as_sender(ALICE, 0)
+		FETCH_QUEUE.append((200, body))
+		VALIDATOR_QUEUE.append([(200, body)])
+
+		def forge(result):
+			result["repo_count"] = 100
+			result["total_bytes"] = 10 ** 9
+			return result
+
+		LEADER_FORGE.append(forge)
+		with self.assertRaises(AssertionError):
+			self.c.verify_skill("torvalds", "Haskell")
+		self.assertFalse(LAST_CONSENSUS["agreed"])
+		# Nothing was stored, and the forged EXPERT exists nowhere.
+		self.assertEqual(jload(self.c.get_stats())["resolved"], 0)
+		self.assertFalse(self.c.is_verified("torvalds", "Haskell", "EXPERT"))
+
+	def test_leader_sends_EXPERT_axis_but_forges_repo_count_0(self):
+		# The mirror: a real EXPERT downgraded by forged counts. Under the old
+		# code the record landed NONE — a leader could silently deny a genuine
+		# expert, which is the same hole pointing the other way.
+		body = fixture_body("torvalds_C")                  # a genuine EXPERT
+		as_sender(ALICE, 0)
+		FETCH_QUEUE.append((200, body))
+		VALIDATOR_QUEUE.append([(200, body)])
+
+		def forge(result):
+			result["repo_count"] = 0
+			result["total_bytes"] = 0
+			return result
+
+		LEADER_FORGE.append(forge)
+		with self.assertRaises(AssertionError):
+			self.c.verify_skill("torvalds", "C")
+		self.assertFalse(LAST_CONSENSUS["agreed"])
+		self.assertEqual(jload(self.c.get_stats())["resolved"], 0)
+
+	def test_validators_disagreeing_on_repo_count_alone_is_undetermined(self):
+		# Same level on both nodes, different repository counts. Before the
+		# fix this committed; the level was the only thing compared.
+		leader = json.loads(fixture_body("torvalds_C"))
+		validator = json.loads(fixture_body("torvalds_C"))
+		# Drop one matching repository from the validator's view. Eight C
+		# repositories become seven — still EXPERT, a different repo_count.
+		drop = next(i for i, it in enumerate(validator["items"])
+			if SV._normalize_skill(it.get("language")) == "c")
+		validator["items"].pop(drop)
+		as_sender(ALICE, 0)
+		FETCH_QUEUE.append((200, json.dumps(leader)))
+		VALIDATOR_QUEUE.append([(200, json.dumps(validator))])
+		# Both nodes still score EXPERT — the LEVEL agrees.
+		self.assertEqual(SV._score(leader, "C")["level"], "EXPERT")
+		self.assertEqual(SV._score(validator, "C")["level"], "EXPERT")
+		self.assertNotEqual(SV._score(leader, "C")["repo_count"],
+			SV._score(validator, "C")["repo_count"])
+		with self.assertRaises(AssertionError):
+			self.c.verify_skill("torvalds", "C")
+		self.assertFalse(LAST_CONSENSUS["agreed"])
+
+	def test_validators_disagreeing_on_total_bytes_alone_is_undetermined(self):
+		leader = json.loads(fixture_body("torvalds_C"))
+		validator = json.loads(fixture_body("torvalds_C"))
+		for item in validator["items"]:
+			if SV._normalize_skill(item.get("language")) == "c":
+				item["size"] = int(item.get("size", 0)) + 1000
+		as_sender(ALICE, 0)
+		FETCH_QUEUE.append((200, json.dumps(leader)))
+		VALIDATOR_QUEUE.append([(200, json.dumps(validator))])
+		self.assertEqual(SV._score(leader, "C")["repo_count"],
+			SV._score(validator, "C")["repo_count"])
+		with self.assertRaises(AssertionError):
+			self.c.verify_skill("torvalds", "C")
+		self.assertFalse(LAST_CONSENSUS["agreed"])
+
+	def test_matching_axis_and_matching_counts_are_accepted(self):
+		# The whole point: an honest round still commits, and it commits the
+		# numbers both nodes saw.
+		as_sender(ALICE, 0)
+		queue_ok("torvalds_C")
+		out = jload(self.c.verify_skill("torvalds", "C"))
+		self.assertTrue(out["ok"])
+		self.assertTrue(LAST_CONSENSUS["agreed"])
+		self.assertEqual(out["status"], "RESOLVED")
+		self.assertEqual(out["level"], "EXPERT")
+		truth = SV._score(fixture_doc("torvalds_C"), "C")
+		self.assertEqual(out["repo_count"], truth["repo_count"])
+		self.assertEqual(int(out["total_bytes"]), truth["total_bytes"])
+
+	# ── gate 2: the coherence check inside _apply ──────────────────────────
+	#
+	# Reached directly, because gate 1 stops these payloads before _apply ever
+	# sees them. That is the point of having two gates, and a test that could
+	# only exercise the first would leave the second unproven.
+
+	_pending_seq = 0
+
+	def _pending_record(self, skill="Go"):
+		"""A PENDING record to hand a forged outcome to.
+
+		A fresh username every call: the cooldown and the in-flight guard are
+		both doing their jobs, and reusing one pair would have this helper
+		testing those instead of the coherence gate."""
+		as_sender(OWNER, 0)
+		self.c.set_cooldown(0)
+		TestConsensusBindsTheCountsToTheLevel._pending_seq += 1
+		user = "forge-subject-%d" % TestConsensusBindsTheCountsToTheLevel._pending_seq
+		as_sender(ALICE, 0)
+		queue_raw(403, RATE_LIMIT_BODY)
+		out = jload(self.c.verify_skill(user, skill))
+		self.assertTrue(out["ok"], out.get("reason"))
+		self.assertEqual(out["status"], "PENDING")
+		return self.c.verifications.get(out["verification_id"])
+
+	def test_apply_refuses_NONE_carrying_expert_sized_counts(self):
+		record = self._pending_record()
+		applied = self.c._apply(record, {
+			"axis": "NONE", "status": 200, "repo_count": 100,
+			"total_bytes": 10 ** 9, "index_count": 100, "top_repos": [], "reason": "",
+		})
+		self.assertFalse(applied["resolved"])
+		self.assertTrue(applied.get("incoherent"))
+		self.assertEqual(str(record.status), "PENDING")
+		self.assertEqual(str(record.level), "")
+		self.assertEqual(int(record.repo_count), 0)
+		self.assertEqual(int(record.total_bytes), 0)
+		self.assertIn("incoherent", str(record.last_reason))
+
+	def test_apply_refuses_EXPERT_carrying_zero_counts(self):
+		record = self._pending_record()
+		applied = self.c._apply(record, {
+			"axis": "EXPERT", "status": 200, "repo_count": 0,
+			"total_bytes": 0, "index_count": 0, "top_repos": [], "reason": "",
+		})
+		self.assertFalse(applied["resolved"])
+		self.assertTrue(applied.get("incoherent"))
+		self.assertEqual(str(record.status), "PENDING")
+		self.assertEqual(str(record.level), "")
+
+	def test_apply_refuses_every_level_paired_with_the_wrong_counts(self):
+		# Exhaustive over the ladder: for each level, counts that produce a
+		# DIFFERENT level must be refused, and only the matching pair stored.
+		counts = {
+			"NONE": (0, 0),
+			"BEGINNER": (1, 10),
+			"PROFICIENT": (3, 500),
+			"EXPERT": (5, 1000),
+		}
+		for claimed in ("NONE", "BEGINNER", "PROFICIENT", "EXPERT"):
+			for source, (repos, size) in counts.items():
+				record = self._pending_record()
+				applied = self.c._apply(record, {
+					"axis": claimed, "status": 200, "repo_count": repos,
+					"total_bytes": size, "index_count": repos,
+					"top_repos": [], "reason": "",
+				})
+				label = "%s claimed over %s counts" % (claimed, source)
+				if claimed == source:
+					self.assertTrue(applied["resolved"], label)
+					self.assertEqual(str(record.level), claimed, label)
+					self.assertEqual(int(record.repo_count), repos, label)
+					self.assertEqual(int(record.total_bytes), size, label)
+				else:
+					self.assertFalse(applied["resolved"], label)
+					self.assertTrue(applied.get("incoherent"), label)
+					self.assertEqual(str(record.level), "", label)
+
+	def test_an_incoherent_payload_leaves_the_record_resolvable(self):
+		# It must be a RETRY, not a grave. The record stays PENDING, keeps its
+		# in-flight slot, and the next honest round settles it.
+		record = self._pending_record()
+		before = int(record.attempts)
+		self.c._apply(record, {
+			"axis": "EXPERT", "status": 200, "repo_count": 0,
+			"total_bytes": 0, "index_count": 0, "top_repos": [], "reason": "",
+		})
+		self.assertEqual(int(record.attempts), before + 1)
+		self.assertTrue(self.c._mutable(record))
+		# resolve_pending re-runs against the record's OWN username and skill,
+		# so the honest answer has to be a Go document.
+		honest = {"total_count": 5, "items": [
+			{"name": "r%d" % i, "language": "Go", "size": 400} for i in range(5)]}
+		as_sender(BOB, 0)
+		queue_raw(200, json.dumps(honest))
+		out = jload(self.c.resolve_pending(int(record.verification_id)))
+		self.assertTrue(out["ok"])
+		self.assertEqual(out["status"], "RESOLVED")
+		self.assertEqual(out["level"], "EXPERT")
+
+	def test_an_incoherent_payload_never_raises(self):
+		# Rule 1. This path is reachable from a payable method.
+		record = self._pending_record()
+		for junk_repos, junk_bytes in ((10 ** 40, 10 ** 40), (-5, -5), ("x", None)):
+			applied = self.c._apply(record, {
+				"axis": "EXPERT", "status": 200, "repo_count": junk_repos,
+				"total_bytes": junk_bytes, "index_count": 0,
+				"top_repos": [], "reason": "",
+			})
+			self.assertIn("resolved", applied)
+
+	def test_a_coherent_payload_stores_the_agreed_values_verbatim(self):
+		# Rule 3 of the fix: what lands is what was agreed, not a
+		# recomputation that happens to coincide with it.
+		record = self._pending_record()
+		applied = self.c._apply(record, {
+			"axis": "PROFICIENT", "status": 200, "repo_count": 4,
+			"total_bytes": 777, "index_count": 9,
+			"top_repos": ["a", "b"], "reason": "",
+		})
+		self.assertTrue(applied["resolved"])
+		self.assertEqual(str(record.level), "PROFICIENT")
+		self.assertEqual(int(record.repo_count), 4)
+		self.assertEqual(int(record.total_bytes), 777)
+		self.assertEqual(str(record.content_hash), SV._content_hash(
+			str(record.github_username), str(record.skill), "PROFICIENT", 4, 777))
+
+	def test_no_such_user_is_unaffected_by_the_coherence_gate(self):
+		# NO_SUCH_USER stores level NONE with zero counts, which the ladder
+		# agrees with — the gate must not turn a 422 into a PENDING loop.
+		as_sender(ALICE, 0)
+		queue_raw(422, '{"message":"Validation Failed"}')
+		out = jload(self.c.verify_skill("ghost-user", "Go"))
+		self.assertEqual(out["status"], "RESOLVED")
+		self.assertEqual(out["level"], "NONE")
+		self.assertFalse(out["user_found"])
 
 
 class TestStoredFieldsAreRecomputed(unittest.TestCase):

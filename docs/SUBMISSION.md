@@ -1,12 +1,10 @@
 SkillVerify — a developer skill verification oracle.
 
-"Does GitHub user U write language L?" Validators independently query GitHub's search index and agree on one string: EXPERT/PROFICIENT/BEGINNER/NONE. Any contract can gate on it — SkillConsumer is a bounty only verified devs claim.
+"Does GitHub user U write language L?" Validators independently query GitHub's search index and agree on EXPERT/PROFICIENT/BEGINNER/NONE. SkillConsumer gates a bounty on it.
 
-Probing changed the design 3x:
+FIXED: the compared axis was the level alone, while the stored level was recomputed from the leader's repo_count/total_bytes, which nothing compared. A leader could report NONE, have validators agree, attach repo_count=100, and land EXPERT. The key now binds level+counts, and _apply refuses any level the agreed counts contradict. Stored values are the agreed ones. Cost: a repo pushed mid-round lands UNDETERMINED, which writes nothing and is retried; a RESOLVED record is frozen.
 
-• The planned per-repo /languages walk 403'd after one verification: 60/60 used against ONE IP shared by all validators — cost is calls×validators, 1/hour network-wide. Now search/repositories: 1 request, own bucket.
-• GitHub silently ignores an unknown `language:` qualifier, returning 200 with everything: "Notalanguage" scored EXPERT. Fixed by re-checking each item's language — on chain, repos=0 index=9.
-• `language:C++` returns repos tagged C. C# too. Both 200. Fixed by encoding+quoting.
+Probing changed the design 3x: validators share a 60/hr IP, killing the per-repo walk; an unknown `language:` 200s with everything; `language:C++` returns C.
 
-350 offline tests · 17 AST checks, mutation-tested · 111 live assertions, 0 failed.
-github.com/kenil1710/skillverify · 0xA89c18414E586741b91e057213ca3007A6E06cCf
+369 offline tests · 22 AST checks, mutation-tested · 111 live assertions.
+github.com/kenil1710/skillverify

@@ -131,12 +131,25 @@ and runs the ladder:
 | **BEGINNER** | 1+ repository |
 | **NONE** | none |
 
-**The compared axis is one string** — the level, plus `NO_SUCH_USER` and
-`UNAVAILABLE`. The probe measured that the counts happen to agree too, and the
-axis was still kept narrow. Two `nlohmann/c++` verifications minutes apart
-stored `489067520` and `489068544` bytes — somebody pushed — and **both scored
-EXPERT**. Had the counts been on the axis, that round would have failed for a
-reason that has nothing to do with the skill.
+**The compared axis is the level *and* the counts it was computed from.** The
+level alone was not enough, and that was this project's rejection: the stored
+level is derived from `repo_count` and `total_bytes`, and nothing compared
+those two numbers. A leader could report `NONE` — which validators seeing a
+genuinely empty result set unanimously agree with — while attaching
+`repo_count=100`, and the contract would compute `EXPERT` from the forged
+counts and store it as a quorum result. Recomputing from evidence nobody agreed
+on is not verification.
+
+So `_compare_key` binds all three, and `_apply` then checks them against each
+other a second time: the ladder re-run over the agreed counts must land on the
+agreed level, or the payload is incoherent and is not scored at all. What lands
+on chain is what the validators agreed on — their level, their counts.
+
+The price is measured and accepted. Two `nlohmann/c++` verifications minutes
+apart stored `489067520` and `489068544` bytes — somebody pushed — and a round
+straddling that push now lands **UNDETERMINED** where it used to commit. An
+undetermined round writes nothing at all, so it is a free retry; a forged
+`EXPERT` is a RESOLVED record, and a RESOLVED record is frozen forever.
 
 **A full rate-limit bucket is never an answer.** A 403 stores the record as
 **PENDING** and `resolve_pending` retries it for free; scoring it `NONE` would
@@ -192,8 +205,8 @@ does `get_config`. Labelling it beats overstating by 4× in silence.
 ## Verification
 
 ```bash
-python3 test/test_logic.py       # 350 offline tests, stdlib only, no chain
-python3 tools/ast_audit.py       # 17 checks — every bug class, by parsing
+python3 test/test_logic.py       # 369 offline tests, stdlib only, no chain
+python3 tools/ast_audit.py       # 22 checks — every bug class, by parsing
 python3 tools/audit_selftest.py  # proves the audit can actually fail
 bash tools/build.sh              # minify + mangle -> build/*.min.py
 node test/deploy.mjs             # deploy + 13 config checks
@@ -201,15 +214,21 @@ node test/e2e.mjs                # 111 live assertions on real validators
 node test/verify_onchain.mjs     # re-derive every stored record from chain
 ```
 
-**350 offline tests.** Pure functions, the scoring engine against **verbatim
+**369 offline tests.** Pure functions, the scoring engine against **verbatim
 GitHub bodies** captured 2026-09-07, the stateful contract driven through a
 storage stub that reproduces on-chain `TreeMap` semantics, the consumer wired to
 a **real** SkillVerify across the call boundary, and the whole battery re-run
-against the **mangled artifact**.
+against the **mangled artifact**. Seventeen of them are the consensus-forgery
+regression: a `LEADER_FORGE` hook tampers with the leader's payload after it is
+computed and before anyone sees it — the exact power a real leader has — and
+eight of the seventeen fail if either gate is removed.
 
-**The audit is mutation-tested.** `audit_selftest.py` injects each of the seven
+**The audit is mutation-tested.** `audit_selftest.py` injects each of the nine
 bug classes into a copy of the contracts and asserts the audit reports it, then
-reverts and asserts it goes clean. An audit that cannot fail is decoration, and
+reverts and asserts it goes clean. The two consensus gates are injected
+**separately**: either alone would have stopped the forgery, so breaking both
+at once could not tell a working pair from one working gate carrying a dead
+one. An audit that cannot fail is decoration, and
 a green run from one is worse than none because it buys false confidence.
 
 | scan | rejection it encodes |
@@ -219,7 +238,7 @@ a green run from one is worse than none because it buys false confidence.
 | unsnapshotted terms | a per-record term read from the live config |
 | payable revert | a raise reachable from a payable path, or from a helper it calls |
 | owner reach | an owner method that can touch a user record or user funds |
-| provenance | a stored field not recomputed from the agreed evidence |
+| provenance | an axis that does not bind the counts its level is checked against, or a stored field that is not the agreed evidence |
 | `str.replace()` | rejected by the runner |
 | `self` in a nondet closure | pickles storage, kills the leader at 0s |
 | artifact size | the ceiling that decides whether this deploys |
@@ -243,7 +262,7 @@ node test/deploy.mjs --network=bradbury --keystore=mywallet
 node test/check_deployment.mjs --network=bradbury
 ```
 
-Artifacts are **21,741** and **11,069** bytes — well under the 48,000 budget and
+Artifacts are **22,259** and **11,069** bytes — well under the 48,000 budget and
 under the largest artifact previously confirmed on Bradbury (37,658). The deploy
 script asserts 13 config properties after the fact, including that the consumer
 actually reads *this* oracle and that both contracts' level ladders agree — a
@@ -259,7 +278,7 @@ mismatch has to surface at deploy time, not at the first claim.
 | [`contracts/NOTES.md`](contracts/NOTES.md) | every hazard and the reasoning behind each decision |
 | [`contracts/SkillVerify.py`](contracts/SkillVerify.py) | the oracle |
 | [`contracts/SkillConsumer.py`](contracts/SkillConsumer.py) | the composability example |
-| [`test/test_logic.py`](test/test_logic.py) | 350 offline tests |
+| [`test/test_logic.py`](test/test_logic.py) | 369 offline tests |
 | [`tools/ast_audit.py`](tools/ast_audit.py) | the pre-submission audit |
 
 ---

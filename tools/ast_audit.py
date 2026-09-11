@@ -16,7 +16,10 @@ something a machine can refuse to let past:
   4. PAYABLE REVERT         — a raise reachable from a payable method
                                (ClaimStake / Pavel)
   5. OWNER REACH            — an owner method that can touch a user record
-  6. STORED-FIELD PROVENANCE— a stored field not recomputed from evidence
+  6. STORED-FIELD PROVENANCE— a consensus axis that does not bind the counts
+                               its level is checked against, or a stored field
+                               that is not the agreed evidence (SkillVerify /
+                               the consensus-forgery rejection)
   7. str.replace()          — rejected by the runner
   8. SELF IN A NONDET CLOSURE — pickles storage, kills the leader at 0s
   9. ARTIFACT SIZE          — the ceiling that decides whether this deploys
@@ -310,7 +313,33 @@ for cls in classes(ctree):
 (ok if not hits else bad)("only the poster can withdraw a bounty, and the consumer has no owner powers")
 
 # ── 6. STORED-FIELD PROVENANCE ────────────────────────────────────────────
-print("\n6. every stored field is recomputed from the agreed evidence")
+print("\n6. every stored field is the agreed evidence, and the axis binds it")
+
+# 6a. The compared consensus axis must bind the counts the level is checked
+#     against. Comparing the level alone lets a leader forge the counts that
+#     decide it: validators agree on NONE, the payload carries repo_count=100,
+#     and the record lands EXPERT. The validator closure must compare
+#     _compare_key (level + repo_count + total_bytes), never the bare _axis_of.
+cmp_fn = next((n for n in ast.walk(trees[SOURCES[0]])
+	if isinstance(n, ast.FunctionDef) and n.name == "_compare_key"), None)
+(ok if cmp_fn else bad)("a _compare_key helper exists")
+if not cmp_fn:
+	findings.append(f"provenance: {SOURCES[0].name} — no _compare_key; the axis is unbound")
+else:
+	csrc = ast.unparse(cmp_fn)
+	binds = 'result.get(\'repo_count\')' in csrc and 'result.get(\'total_bytes\')' in csrc
+	(ok if binds else bad)("the compared key binds repo_count and total_bytes")
+	if not binds:
+		findings.append(f"provenance: {SOURCES[0].name}:{cmp_fn.lineno} — _compare_key does not bind the counts")
+
+vfn = next((n for n in ast.walk(trees[SOURCES[0]])
+	if isinstance(n, ast.FunctionDef) and n.name == "validator_fn"), None)
+vsrc = ast.unparse(vfn) if vfn else ""
+uses_key = "_compare_key(" in vsrc and "_axis_of(" not in vsrc
+(ok if uses_key else bad)("the validator compares the bound key, not the bare axis")
+if not uses_key:
+	findings.append(f"provenance: {SOURCES[0].name}:{vfn.lineno if vfn else 0} — validator_fn does not compare _compare_key")
+
 apply_fn = None
 for cls in classes(trees[SOURCES[0]]):
 	for fn in methods(cls):
@@ -318,7 +347,13 @@ for cls in classes(trees[SOURCES[0]]):
 			apply_fn = fn
 src = ast.unparse(apply_fn) if apply_fn else ""
 required = [
-	("level is recomputed from the counts", "_level_for(repo_count, total_bytes)"),
+	# 6b. The level stored is the one the validators AGREED on...
+	("the stored level is the agreed axis", "level = axis"),
+	# ...and it is enforced against the agreed counts rather than derived from
+	# them, so a coherent-but-unagreed pair cannot be quietly turned into a
+	# verdict its voters never cast.
+	("the agreed counts are re-run through the ladder", "recomputed = _level_for(repo_count, total_bytes)"),
+	("an axis its own counts contradict is refused", "if recomputed != level:"),
 	("content_hash is derived from the stored fields", "_content_hash("),
 	("counts are clamped before they meet a sized integer", "_clamp("),
 ]

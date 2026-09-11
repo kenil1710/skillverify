@@ -28,12 +28,27 @@ import json
 #      _reject. This is why every argument that can reach a storage write is
 #      range-checked first.
 #
-#   2. THE LEVEL IS THE ONLY COMPARED CONSENSUS AXIS. One string. Six possible
-#      values: the four levels plus NO_SUCH_USER and UNAVAILABLE. docs/PROBE.md
-#      6 measured that the counts happen to agree too, and the axis still does
-#      not include them - a verification that lands UNDETERMINED because one
-#      validator's search shard was a second stale is a worse outcome than one
-#      whose byte count is a second stale.
+#   2. THE COMPARED CONSENSUS AXIS IS THE LEVEL *AND* THE COUNTS IT WAS
+#      COMPUTED FROM. The level alone is six possible strings - the four levels
+#      plus NO_SUCH_USER and UNAVAILABLE - and comparing only that was a
+#      forgery hole: the stored level is recomputed from the leader's
+#      repo_count and total_bytes, so a leader that reported a level its
+#      validators agreed with could ship any counts it liked alongside it and
+#      have EXPERT written where the validators had all seen NONE. The compared
+#      key is now level + repo_count + total_bytes (see _compare_key), so the
+#      numbers that decide the level are themselves agreed. docs/PROBE.md 6
+#      measured that the counts do agree in practice; the price of binding them
+#      is that a repository pushed between the leader's fetch and a validator's
+#      now lands UNDETERMINED, which is a retry, where a forged EXPERT is
+#      permanent. NO_SUCH_USER and UNAVAILABLE carry no counts and compare as
+#      the bare axis.
+#
+#      _apply then enforces the two against each other a second time: the level
+#      recomputed from the agreed counts must equal the agreed level, or the
+#      payload is incoherent and is not scored at all. Consensus is the first
+#      line and that check is the second, because a leader whose counts and
+#      level are mutually consistent but wrong is caught by consensus, and one
+#      that slips past consensus is caught here.
 #
 #   3. GITHUB'S ANSWER IS NEVER TRUSTED ON ITS WORD. `language:` qualifiers it
 #      does not recognise are SILENTLY IGNORED and the user's whole repository
@@ -553,6 +568,42 @@ def _axis_of(result) -> str:
 	return AXIS_UNAVAILABLE
 
 
+def _compare_key(result) -> str:
+	"""THE FULL COMPARED CONSENSUS AXIS: the level and the counts it came from.
+
+	Comparing the level alone left a forgery hole wide enough to drive an
+	EXPERT through. _apply derives the stored level from the leader's
+	`repo_count` and `total_bytes`, and those two numbers were never compared
+	by anybody - so a leader could answer NONE (which its validators, seeing a
+	real NONE, would happily agree with) while attaching repo_count=100 and
+	total_bytes=10**9, and the record would land EXPERT on a unanimous vote for
+	NONE. The numbers that decide the level have to be agreed, or agreeing on
+	the level means nothing.
+
+	So the key binds all three, field-separated with \x1f - a byte no decimal
+	string contains, so ("1", "23") and ("12", "3") cannot collide into one key.
+
+	The two non-level axes carry no counts at all: NO_SUCH_USER is a 422 and
+	UNAVAILABLE is a 403 or a parse failure, and neither payload has ever held
+	a number. They compare as the bare axis, exactly as before, so a
+	rate-limited round still agrees with another rate-limited round.
+
+	A missing count reads as -1, not 0. A payload that omits `repo_count`
+	entirely is malformed, and a validator that legitimately measured ZERO
+	repositories must not be made to agree with it.
+
+	NEVER RAISES - it runs inside the validator closure, which reaches a
+	payable method."""
+	axis = _axis_of(result)
+	if _rank(axis) < 0:
+		return axis
+	if not isinstance(result, dict):
+		return AXIS_UNAVAILABLE
+	repos = _as_int(result.get("repo_count"), -1)
+	size = _as_int(result.get("total_bytes"), -1)
+	return axis + "\x1f" + str(repos) + "\x1f" + str(size)
+
+
 def _run_evaluation(username: str, skill: str) -> dict:
 	"""The nondeterministic block, with its equivalence principle.
 
@@ -579,8 +630,8 @@ def _run_evaluation(username: str, skill: str) -> dict:
 		if not isinstance(leader_result, gl.vm.Return):
 			leader_fn()
 			return False
-		mine = _axis_of(leader_fn())
-		theirs = _axis_of(leader_result.calldata)
+		mine = _compare_key(leader_fn())
+		theirs = _compare_key(leader_result.calldata)
 		return mine == theirs
 
 	outcome = gl.vm.run_nondet(leader_fn, validator_fn)
@@ -830,11 +881,12 @@ class SkillVerify(gl.Contract):
 		  - nothing below can raise, so no field is written and then rolled back
 		    while a counter somewhere else keeps the increment.
 
-		Every stored field is RECOMPUTED from the agreed evidence rather than
-		copied from wherever it was convenient. content_hash in particular is
-		derived from the values as stored, so a record whose hash does not match
-		its own fields is impossible to produce - which is what makes the hash
-		worth checking."""
+		Every stored field comes from the AGREED evidence - the level the
+		validators voted on and the counts they voted on alongside it (rule 2,
+		_compare_key) - and the two are enforced against each other before
+		either is written. content_hash is derived from the values as stored, so
+		a record whose hash does not match its own fields is impossible to
+		produce, which is what makes the hash worth checking."""
 		axis = _axis_of(outcome)
 		status_code = _clamp(_as_int(outcome.get("status"), 0), 0, (1 << 32) - 1)
 		reason = _as_text(outcome.get("reason"))[:200]
@@ -866,12 +918,35 @@ class SkillVerify(gl.Contract):
 					top.append(_as_text(name)[:MAX_REPO_NAME])
 			found = True
 			incomplete = bool(outcome.get("incomplete", False))
-			# The level is RECOMPUTED from the counts rather than trusted. The
-			# leader agreed with its validators on a level and separately
-			# reported counts; if those two disagree the counts are the evidence
-			# and the level must follow them, or the record would carry a
-			# verdict its own evidence does not support.
-			level = _level_for(repo_count, total_bytes)
+			# ── THE COHERENCE GATE, and the second half of the fix rule 2
+			# ── describes.
+			#
+			# The level and the counts were both agreed by the validators, so
+			# neither is trusted over the other and neither is silently made to
+			# follow the other. They are checked AGAINST each other: the ladder
+			# is re-run over the agreed counts and must land on the agreed
+			# level.
+			#
+			# Recomputing-and-storing instead - what this method used to do -
+			# looks safer and is not: it takes whatever numbers arrived and
+			# quietly derives a verdict from them, which is exactly how a
+			# leader that shipped forged counts under an agreed level got
+			# EXPERT written on a unanimous vote for NONE.
+			#
+			# An incoherent payload is not scored at all. It is NOT a raise -
+			# this path is reached from a payable method (rule 1) - and not a
+			# score either: the record stays PENDING and is re-resolvable, so
+			# the next round, under a different leader, settles it.
+			recomputed = _level_for(repo_count, total_bytes)
+			if recomputed != level:
+				record.attempts = u32(_clamp(int(record.attempts) + 1, 0, MAX_ATTEMPTS))
+				record.last_reason = (
+					"incoherent result: level " + level + " with " + str(repo_count)
+					+ " repos and " + str(total_bytes) + " bytes, which is " + recomputed
+				)[:200]
+				record.http_status = u32(status_code)
+				return {"resolved": False, "axis": AXIS_UNAVAILABLE,
+					"incoherent": True, "reason": record.last_reason}
 
 		record.level = level
 		record.repo_count = u32(repo_count)

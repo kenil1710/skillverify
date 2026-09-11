@@ -168,33 +168,94 @@ contract that composes with it.**
 
 ---
 
-## 5. The consensus axis is one string, and it has six values
+## 5. The consensus axis is the level *and* the counts it was computed from
 
-`verify_skill`'s validator compares **one string**: `EXPERT`, `PROFICIENT`,
-`BEGINNER`, `NONE`, `NO_SUCH_USER`, `UNAVAILABLE`.
+`verify_skill`'s validator compares `_compare_key`: the level — `EXPERT`,
+`PROFICIENT`, `BEGINNER`, `NONE`, `NO_SUCH_USER`, `UNAVAILABLE` — and, for the
+four that are real levels, the `repo_count` and `total_bytes` behind it.
 
 `UNAVAILABLE` is on the axis precisely *because* it is not a level. Validators
 must **agree** that the source was unreachable, or one node's rate limit
-silently becomes everybody's verdict.
+silently becomes everybody's verdict. It and `NO_SUCH_USER` carry no counts —
+a 403 and a 422 have never held a number — so they compare as the bare axis.
 
-### Why it is this narrow, when the evidence said it need not be
+### This was narrower, and being narrower was a forgery hole
 
-The probe measured `level` + `repo_count` + `total_bytes` **all** on the axis
-and it **committed**, twice. The axis was kept to the level anyway.
+The axis used to be the level alone. That was a deliberate choice, made for a
+measured reason, and it was **wrong** — it is the bug this project was rejected
+for, and the reasoning that produced it is left here rather than quietly
+deleted, because the mistake is more instructive than the fix.
 
-The reason is on chain. Two `nlohmann/c++` verifications, minutes apart:
+The stored level was never the leader's level. `_apply` recomputed it from the
+leader's `repo_count` and `total_bytes`:
+
+```python
+level = _level_for(repo_count, total_bytes)      # from the leader's payload
+```
+
+Nothing compared those two numbers. So a leader could report `NONE` — which
+every validator looking at a genuinely empty result set would unanimously
+agree with — and attach `repo_count=100, total_bytes=10**9` to the same
+payload. Consensus passed on `NONE`. The contract then computed `EXPERT` from
+the forged counts and stored it, with a content hash over it, as a quorum
+result. **A verification the validators voted NONE on lands EXPERT.** It
+inverts in both directions: forging zeroes under a real `EXPERT` silently
+denies a genuine expert.
+
+Recomputing looked like the safe move — deriving a verdict rather than trusting
+one — and it is the exact opposite when the inputs to the derivation are
+themselves untrusted. *Recomputing from unagreed evidence is not verification;
+it is laundering.*
+
+### What it costs, measured
+
+The probe measured `level` + `repo_count` + `total_bytes` all on the axis and
+it **committed**, twice — the counts do agree in practice. But they are not
+guaranteed to. Two `nlohmann/c++` verifications, minutes apart:
 
 ```
  9 RESOLVED EXPERT repos=8 bytes=489067520 hash=58674b2ea0d6ea70
 17 RESOLVED EXPERT repos=8 bytes=489068544 hash=73d1f59a6dff4abd
 ```
 
-Somebody pushed. The byte count moved by 1,024 and the hash with it. Had those
-counts been on the axis, a round straddling that push would have landed
-**UNDETERMINED** — and a verification that fails because a byte count is a
-second stale is a worse outcome than one whose byte count is a second stale.
-The counts are still recomputed by every validator and stored from the agreed
-payload; the **level** is what they must agree on.
+Somebody pushed. The byte count moved by 1,024. A round straddling that push
+now lands **UNDETERMINED** where it used to commit, and that is the price.
+
+It is worth paying, and the arithmetic is not close. An `UNDETERMINED` round
+writes **nothing** — no record, no counter, no cooldown stamp — so it is a
+retry that costs the caller nothing but a resubmission. A forged `EXPERT` is a
+`RESOLVED` record, and a `RESOLVED` record is **frozen forever** (rule 5); no
+method, owner included, can correct it. A recoverable inconvenience against a
+permanent, unfixable lie is not a trade-off, it is an answer.
+
+`test_byte_differences_are_a_disagreement_now_that_the_counts_are_bound`
+asserts the cost so it stays a decision rather than becoming a surprise.
+
+### The second gate, and why one is not enough
+
+Consensus is the first line. `_apply` is the second: it re-runs the ladder over
+the agreed counts and requires the result to equal the agreed level.
+
+```python
+recomputed = _level_for(repo_count, total_bytes)
+if recomputed != level:        # incoherent — not scored at all
+```
+
+The level is now **checked against** the counts rather than derived from them,
+and what is stored is what the validators agreed on: their level, their
+`repo_count`, their `total_bytes`.
+
+The two gates catch different things. Consensus catches a leader whose payload
+disagrees with what the validators measured. Coherence catches a payload that
+is internally contradictory — an `EXPERT` with zero repositories — which
+consensus could only catch if some validator happened to disagree with it.
+Neither subsumes the other, so `tools/audit_selftest.py` breaks them one at a
+time and asserts the audit catches each alone; breaking both together could not
+distinguish two working gates from one working gate carrying a dead one.
+
+An incoherent payload is **not** a raise — this path is reachable from a
+payable method (rule 1) — and not a score either. The record stays `PENDING`
+and `resolve_pending` settles it under the next leader.
 
 ### The status classification, and rule 4
 

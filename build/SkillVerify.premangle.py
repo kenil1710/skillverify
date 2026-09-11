@@ -275,6 +275,15 @@ def _axis_of(result) -> str:
  if axis in AXIS_VALUES:
   return axis
  return AXIS_UNAVAILABLE
+def _compare_key(result) -> str:
+ axis = _axis_of(result)
+ if _rank(axis) < 0:
+  return axis
+ if not isinstance(result, dict):
+  return AXIS_UNAVAILABLE
+ repos = _as_int(result.get("repo_count"), -1)
+ size = _as_int(result.get("total_bytes"), -1)
+ return axis + "\x1f" + str(repos) + "\x1f" + str(size)
 def _run_evaluation(username: str, skill: str) -> dict:
  user = str(username)
  lang = str(skill)
@@ -284,8 +293,8 @@ def _run_evaluation(username: str, skill: str) -> dict:
   if not isinstance(leader_result, gl.vm.Return):
    leader_fn()
    return False
-  mine = _axis_of(leader_fn())
-  theirs = _axis_of(leader_result.calldata)
+  mine = _compare_key(leader_fn())
+  theirs = _compare_key(leader_result.calldata)
   return mine == theirs
  outcome = gl.vm.run_nondet(leader_fn, validator_fn)
  if not isinstance(outcome, dict):
@@ -457,7 +466,16 @@ class SkillVerify(gl.Contract):
      top.append(_as_text(name)[:MAX_REPO_NAME])
    found = True
    incomplete = bool(outcome.get("incomplete", False))
-   level = _level_for(repo_count, total_bytes)
+   recomputed = _level_for(repo_count, total_bytes)
+   if recomputed != level:
+    record.attempts = u32(_clamp(int(record.attempts) + 1, 0, MAX_ATTEMPTS))
+    record.last_reason = (
+    "incoherent result: level " + level + " with " + str(repo_count)
+    + " repos and " + str(total_bytes) + " bytes, which is " + recomputed
+    )[:200]
+    record.http_status = u32(status_code)
+    return {"resolved": False, "axis": AXIS_UNAVAILABLE,
+    "incoherent": True, "reason": record.last_reason}
   record.level = level
   record.repo_count = u32(repo_count)
   record.total_bytes = u128(total_bytes)
