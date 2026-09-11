@@ -18,6 +18,35 @@
     }
   },
   "deployments": {
+    "studiodev": {
+      "network": "studiodev",
+      "chain_id": 61997,
+      "rpc": "https://studio-dev.genlayer.com/api",
+      "runner": "py-genlayer:5jycge4q8k23462jtb0b9fyey1s9qz928sz2nbrd9mg4sxqg2qng",
+      "SkillVerify": "0x4a5db424A4bF1b839081aFFD6a4a2cC3a8C4614f",
+      "SkillConsumer": "0x1b4E4f334b02f6D6E60e526503f8E35307c73844",
+      "owner": "0x47E433241944d9c0994D8BEf9Cae539Bb9D0e8a7",
+      "deployedAt": "2026-09-11",
+      "explorer": {
+        "SkillVerify": "https://explorer-studio-dev.genlayer.com/address/0x4a5db424A4bF1b839081aFFD6a4a2cC3a8C4614f",
+        "SkillConsumer": "https://explorer-studio-dev.genlayer.com/address/0x1b4E4f334b02f6D6E60e526503f8E35307c73844"
+      },
+      "artifacts": {
+        "SkillVerify": "build/v06/SkillVerify.v06.py",
+        "SkillConsumer": "build/v06/SkillConsumer.v06.py"
+      },
+      "deploy_tx": {
+        "SkillVerify": "0x899b0faaaf15d8b30d0fb4af4972525fab9d5212c7b14736ea134d5a241e82ef",
+        "SkillConsumer": "0xae7d66da5bc5a1816b07ef783230b6dd6a0546df1a2c23566f2564a7d6802ac3"
+      },
+      "verified": "18/18 read-only checks, including that the consumer reads THIS oracle ACROSS the contract boundary \u2014 get_skill_report answers 'no resolved verification', not 'oracle unreachable'.",
+      "carries_the_consensus_fix": "Yes. _compare_key (mangled to `bd`) and the _apply coherence gate are in the deployed bytes; the level is checked against the agreed counts, not derived from them.",
+      "superseded_consumer": {
+        "address": "0x7d0749701D340199B601DD51B47C9571c32112fb",
+        "why": "DO NOT USE. Deployed before gl.get_contract_at was migrated to gl.contract.get_at. It did not fail loudly: SkillConsumer wraps every oracle read in `except Exception` so an unreachable oracle refunds instead of reverting, so the contract deployed clean, reported the right oracle address from get_terms, and silently degraded EVERY lookup to 'oracle unreachable'."
+      },
+      "fees": "studio-dev runs the fee policy ENABLED and exposes no feeManagerContract, so normalizeTransactionFees(undefined) yields an all-zero distribution and the consensus contract refuses the zero-fee transaction. Each deploy passed an explicit estimateFeesDistribution() and cost a 0.1 GEN deposit. Fund with sim_fundAccount, whose amount must be a HEX STRING \u2014 a JS Number serialises as 1e+21 and the node answers 'amount must be a positive integer'."
+    },
     "studionet": {
       "SkillVerify": "0x502852778bfAB94E48918E7A14D28b126D58cc41",
       "SkillConsumer": "0x08CedAECe6BbB6accE3Ed5B6A0708765a2627B77",
@@ -40,5 +69,19 @@
     "round2_rate_limit": "0xEc7482C58205bd59754258eddC840cE758585992",
     "round3_search_index": "0x9E9bf1e5fb00344588078895Db5e753AAB9b2F6A",
     "round4_5_url_encoding": "0xBA33fda8F9C5C9d95A95DEEC187b4DEa1F538f72"
+  },
+  "artifacts_v06": {
+    "note": "The v0.6 runner's API surface, produced from the v0.3 artifacts by tools/to_v06.py. These are the exact bytes deployed to studiodev; re-running the converter reproduces both hashes.",
+    "runner": "py-genlayer:5jycge4q8k23462jtb0b9fyey1s9qz928sz2nbrd9mg4sxqg2qng",
+    "build/v06/SkillVerify.v06.py": {
+      "source": "build/SkillVerify.min.py",
+      "bytes": 22423,
+      "sha256": "f07ba38fb09f9b17864e1331e6279d4e37e8b6e2fc6eaf60d10e3397d88d72c3"
+    },
+    "build/v06/SkillConsumer.v06.py": {
+      "source": "build/SkillConsumer.min.py",
+      "bytes": 11178,
+      "sha256": "113228a154f4f1b5be207eec071eafba516c9ed5cd6da706fbf9402297735bb0"
+    }
   }
 }

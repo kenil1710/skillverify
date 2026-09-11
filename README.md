@@ -9,8 +9,8 @@ agreed on, plus the evidence they computed it from.
 Any other contract can then gate on it:
 
 ```python
-# in your contract
-oracle = gl.get_contract_at(Address(SKILLVERIFY))
+# in your contract  (v0.6; on the v0.3 runner this is gl.get_contract_at)
+oracle = gl.contract.get_at(Address(SKILLVERIFY))
 if not oracle.view().is_verified("gvanrossum", "Python", "PROFICIENT"):
     return {"ok": False, "reason": "not qualified"}
 ```
@@ -20,19 +20,58 @@ claimed by a developer the oracle has verified.
 
 ## Live
 
+**Studio Dev (chain 61997) — the current deployment, and the only one carrying
+the consensus fix.**
+
+| | address | |
+|---|---|---|
+| **SkillVerify** | `0x4a5db424A4bF1b839081aFFD6a4a2cC3a8C4614f` | [explorer](https://explorer-studio-dev.genlayer.com/address/0x4a5db424A4bF1b839081aFFD6a4a2cC3a8C4614f) |
+| **SkillConsumer** | `0x1b4E4f334b02f6D6E60e526503f8E35307c73844` | [explorer](https://explorer-studio-dev.genlayer.com/address/0x1b4E4f334b02f6D6E60e526503f8E35307c73844) |
+
+Owner `0x47E433241944d9c0994D8BEf9Cae539Bb9D0e8a7`. **18/18 read-only checks**,
+including the one that matters most — that the consumer reads *this* oracle
+**across the contract boundary**, rather than the two merely each existing.
+That check is not decoration: the first consumer deployed here passed every
+local check and still could not reach the oracle (see the migration note below).
+
+These run the **v0.6 runner**, whose API surface differs from the sources in
+`contracts/`. `build/v06/*.v06.py` are the exact deployed bytes, produced by
+`python3 tools/to_v06.py`; re-running it reproduces both sha256s recorded in
+`deployments.json`.
+
+### Earlier networks — superseded, all pre-fix
+
 | | Bradbury (testnet) | Studionet |
 |---|---|---|
 | **SkillVerify** | `0xA89c18414E586741b91e057213ca3007A6E06cCf` | `0x502852778bfAB94E48918E7A14D28b126D58cc41` |
 | **SkillConsumer** | `0x853fB2E9c895Dcb797Fc8D2c68D2F2aDde025f7B` | `0x08CedAECe6BbB6accE3Ed5B6A0708765a2627B77` |
 | | 16/16 config checks | 111 live assertions, 0 failed |
 
-Both networks verified read-only after the fact, including the check that
-matters most — that the consumer reads *this* oracle across the contract
-boundary, rather than the two merely each existing:
+Both hold the artifact whose validator compared the level alone. A Bradbury
+redeploy was attempted and is **stuck**: three transactions sit unmined at
+nonces 251 and 252, and across a 400-block window nothing larger than ~1.3M gas
+was included there while these ask for ~18.4M each. Studio Dev is where the
+fixed contract actually runs.
 
 ```bash
 node test/check_deployment.mjs --network=bradbury
 ```
+
+### The v0.6 migration, and the one that does not fail loudly
+
+Six substitutions are mechanical — `gl.Contract` → `gl.contract.Contract`,
+`gl.message_raw` → `gl.message.raw`, `allow_storage` → `gl.storage.allow`,
+`TreeMap`/`DynArray` → `gl.storage.*`, plus the new runner header.
+
+The seventh is the one to know about: **`gl.get_contract_at` is gone in v0.6**,
+replaced by `gl.contract.get_at`. It does not crash. `SkillConsumer` wraps every
+oracle read in `except Exception` so an unreachable oracle *refunds* rather than
+reverting — deliberate, and rule 1 — so the stale spelling deploys clean,
+reports the right oracle address from `get_terms`, and silently degrades **every
+lookup** to `"oracle unreachable"`. The consumer at
+`0x7d0749701D340199B601DD51B47C9571c32112fb` is that build; it is superseded and
+should not be used. `get_skill_report`'s `reason` field is what exposes it, which
+is why the deployment check asserts on that string rather than on `found`.
 
 The behaviour below was measured on Studionet, where the write suite ran:
 
@@ -249,6 +288,11 @@ a green run from one is worse than none because it buys false confidence.
 
 ```bash
 bash tools/build.sh
+
+# Studio Dev (chain 61997) — the v0.6 runner, and where this currently lives.
+# The artifacts are converted first; the sources in contracts/ are v0.3.
+python3 tools/to_v06.py          # -> build/v06/*.v06.py
+
 node test/deploy.mjs --network=studionet
 
 # Bradbury — the signer becomes the owner of both contracts.
@@ -262,8 +306,19 @@ node test/deploy.mjs --network=bradbury --keystore=mywallet
 node test/check_deployment.mjs --network=bradbury
 ```
 
-Artifacts are **22,259** and **11,069** bytes — well under the 48,000 budget and
-under the largest artifact previously confirmed on Bradbury (37,658). The deploy
+The Studio Dev deploy itself is `scratchpad`-side rather than a committed
+script, and two of its constraints are worth carrying forward. studio-dev runs
+the **fee policy enabled** with no `feeManagerContract`, so the SDK cannot derive
+a deposit on its own: `normalizeTransactionFees(undefined)` yields an all-zero
+distribution and the consensus contract refuses the zero-fee transaction. Pass an
+explicit `estimateFeesDistribution()` as `fees` (0.1 GEN per deploy). And
+`sim_fundAccount`'s amount must be a **hex string** — a JS `Number` serialises as
+`1e+21` and the node answers `amount must be a positive integer`, after which the
+deploy fails for want of a deposit rather than for anything to do with the code.
+
+Artifacts are **22,259** and **11,069** bytes on v0.3, **22,423** and **11,178**
+after the v0.6 conversion — well under the 48,000 budget and under the largest
+artifact previously confirmed on Bradbury (37,658). The deploy
 script asserts 13 config properties after the fact, including that the consumer
 actually reads *this* oracle and that both contracts' level ladders agree — a
 mismatch has to surface at deploy time, not at the first claim.
@@ -280,13 +335,22 @@ mismatch has to surface at deploy time, not at the first claim.
 | [`contracts/SkillConsumer.py`](contracts/SkillConsumer.py) | the composability example |
 | [`test/test_logic.py`](test/test_logic.py) | 369 offline tests |
 | [`tools/ast_audit.py`](tools/ast_audit.py) | the pre-submission audit |
+| [`tools/to_v06.py`](tools/to_v06.py) | the v0.3 → v0.6 conversion, and what it refuses to leave behind |
 
 ---
 
-## What is not yet proved on Bradbury
+## What is not yet proved on Studio Dev or Bradbury
 
-The Bradbury pair is deployed and its configuration is verified, but **no
-verification has been submitted there** — `total_verifications` is 0. Every
+**Studio Dev has 18/18 read-only checks and no writes.** `total_verifications`
+is 0 there: every config property, both contracts' ladders, the never-raise
+behaviour of `is_verified` / `get_latest` / `get_verification`, and the
+cross-boundary read are verified live — but no `verify_skill` has been
+submitted, so the consensus fix has **not** been exercised against a real
+validator quorum on chain. Its evidence is the 17 offline regression tests,
+8 of which fail if either gate is removed.
+
+The Bradbury pair is likewise deployed and config-verified with **no
+verification submitted** — and it holds the pre-fix artifact besides. Every
 behavioural claim above (levels, refunds, freezing, the bounty flow) was
 measured on Studionet.
 
